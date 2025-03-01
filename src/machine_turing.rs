@@ -32,15 +32,15 @@ pub struct Transition {
 
 #[derive(Debug)]
 pub struct Configuration {
-    ribbon: Ribbon, // That modelize the ribbons of the Machine of Turing
-    states: Vec<State>,
+    ribbon: Ribbon, // That modelize the ribbon of the Machine of Turing
     current_state: String,
-    transitions: HashMap<String,Vec<Transition>>
 }
 
 #[derive(Debug)]
 pub struct MachineTuring {
     pub configuration: Configuration,
+    pub states: Vec<State>,
+    pub transitions: HashMap<String,Vec<Transition>>,
     pub step: u64
 }
 
@@ -90,9 +90,8 @@ impl Transition {
 }
 
 impl Configuration {
-    pub  fn new(ribbon: Ribbon,states: Vec<State>,current_state: String,
-        transitions: HashMap<String,Vec<Transition>>) -> Self {
-        Self { ribbon: ribbon, states: states, current_state: current_state, transitions: transitions }
+    pub  fn new(ribbon: Ribbon,current_state: String) -> Self {
+        Self { ribbon: ribbon, current_state: current_state }
     }
 
     pub fn get_ribbon(&self) -> &Ribbon {
@@ -103,16 +102,11 @@ impl Configuration {
         &mut self.ribbon
     }
 
-    pub fn get_transitions(&self) -> Option<&Vec<Transition>> {
-        self.transitions.get(&self.current_state)
+    pub fn get_current_state(&self) -> String {
+        String::from(&self.current_state)
     }
 
-    pub fn update(&mut self) -> Result<(), ()> {
-        let transitions = match self.get_transitions() {
-            Some(trans) => trans.clone(),
-            None => return Err(()),
-        };
-    
+    pub fn update(&mut self, transitions:Vec<Transition>) -> Result<(), ()> {   
         let ribbon = self.get_mut_ribbon();
         for transition in transitions {
             if transition.read == *ribbon.get() {
@@ -131,16 +125,29 @@ impl Configuration {
 }
 
 impl MachineTuring {
-    pub fn new(configuration:Configuration) -> Self {
-        Self { configuration: configuration, step: 0u64 }
+    pub fn new(configuration:Configuration, states:Vec<State>, transitions:HashMap<String,Vec<Transition>>) -> Self {
+        Self { configuration: configuration, states: states, transitions: transitions, step: 0u64 }
+    }
+
+    pub fn get_transitions(&self) -> Option<Vec<Transition>> {
+        match self.transitions.get(&self.configuration.get_current_state()) {
+            Some(vector) => Some(vector.clone()),
+            None => None
+        }
     }
 
     pub fn run(&mut self) -> Result<(),()> {
         let mut active = true;
         while active {
-            if let Err(_) = self.configuration.update().clone() {
-                active = false;
+            match self.get_transitions() {
+                Some(transitions) => {
+                    if let Err(_) = self.configuration.update(transitions).clone() {
+                        active = false;
+                    }
+                }
+                None => active = false
             }
+            
         }
         self.check_final_state()
     }
@@ -148,18 +155,21 @@ impl MachineTuring {
     pub fn run_with_limit(&mut self, limit:u64) -> Result<(),()> {
         let mut active = true;
         while active && self.step<limit {
-            if let Err(_) = self.configuration.update().clone() {
-                active = false;
+            match self.get_transitions() {
+                Some(transitions) => {
+                    if let Err(_) = self.configuration.update(transitions).clone() {
+                        active = false;
+                    }
+                }
+                None => active = false
             }
-            else {
-                self.step += 1;
-            }
+            
         }
         self.check_final_state()
     }
 
     pub fn check_final_state(&self) -> Result<(),()> {
-        let states = self.configuration.states.clone();
+        let states = self.states.clone();
         for state in states {
             if state.0 == self.configuration.current_state {
                 if state.1 == true {
@@ -171,5 +181,56 @@ impl MachineTuring {
             }
         }
         Err(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::machine_turing::*; 
+
+    fn create_mt() -> MachineTuring {
+        let ribbon = Ribbon::from(vec!["0","1","1","1"]);
+        let states = vec![
+            State::from("start",false),
+            State::from("accept",true),
+            State::from("reject",false),
+            State::from("right",false),
+            State::from("add",false)
+        ];
+        let init_state = String::from("start");
+        let mut transitions: HashMap<String,Vec<Transition>> = HashMap::new();
+        transitions.insert(String::from("start"), vec![
+            Transition::from("", "", MoveTo::Stay, "reject"),
+            Transition::from("0","0",MoveTo::Right,"right")
+        ]);
+        transitions.insert(String::from("right"), vec![
+            Transition::from("1","1",MoveTo::Right,"right"),
+            Transition::from("0","0",MoveTo::Right,"right"),
+            Transition::from("", "",MoveTo::Left, "add")
+        ]);
+        transitions.insert(String::from("add"), vec![
+            Transition::from("0","1",MoveTo::Stay,"accept"),
+            Transition::from("1","0",MoveTo::Left,"add"),
+            Transition::from("","1",MoveTo::Stay,"accept")
+        ]);
+        MachineTuring::new(Configuration::new(ribbon,  init_state),states, transitions)
+    }
+
+    #[test]
+    fn test_run() {
+        let mut mt = create_mt();
+        match mt.run() {
+            Ok(_) => println!("Successfully run the MT :\n{:?}",mt.configuration.get_ribbon()),
+            Err(_) => println!("Error when run the MT :\n{:?}",mt.configuration.get_ribbon())
+        }
+    }
+
+    #[test]
+    fn test_run_limit() {
+        let mut mt = create_mt();
+        match mt.run_with_limit(10) {
+            Ok(_) => println!("Successfully run the MT :\n{:?}",mt.configuration.get_ribbon()),
+            Err(_) => println!("Error when run the MT :\n{:?}",mt.configuration.get_ribbon())
+        }
     }
 }
