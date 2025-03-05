@@ -179,8 +179,10 @@ class Configuration:
             if transition.read == current_symbol:
                 self._tape.set_symbol(transition.write)
                 match transition.movement.move:
+                    case 0: pass # When that match 'Stay'
                     case 1: self.set_tape(self._tape.move_left())
                     case 2: self.set_tape(self._tape.move_right())
+                    case _: raise ValueError(f"ERROR : inconsistent value in MoveTo object : {transition.movement.move}")
                 self.set_current_state(transition.futur_state)
                 return True
         return False
