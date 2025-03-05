@@ -6,6 +6,8 @@ start,_,reject,_,-
 
 start,0,right,0,>
 
+start,1,right,1,>
+
 right,0,right,0,>
 
 right,1,right,1,>

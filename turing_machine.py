@@ -1,5 +1,3 @@
-from typing import Dict
-
 class Symbol:
 
     def __init__(self, symbol:str="_"):
@@ -11,34 +9,38 @@ class Symbol:
 
     sym = property(lambda x: x._sym,set)
 
+    def __eq__(self, value):
+        assert isinstance(value,Symbol), "ERROR : you can't compare a Symbol with an object who's not a Symbol."
+        return self._sym == value.sym
+
     def __repr__(self):
-        return self._sym
+        return f"{self._sym}"
 
 class MoveTo:
 
     def __init__(self, movement:str=""):
         assert isinstance(movement,str), "ERROR : A MoveTo take in input of it constructor a str."
         match movement.lower():
-            case "_" | "stay" : self._move = 0
+            case "-" | "stay" : self._move = 0
             case "<" | "left" : self._move = 1
             case ">" | "right" : self._move = 2
             case _ : raise ValueError(f"Invalid movement : '{movement}'")
 
-    def set(self,new_value:str):
+    def set(self,new_value:int):
         self._move = new_value
 
     move = property(lambda x: x._move,set)
 
     def __repr__(self):
-        return self._move
+        return f"{self._move}"
     
 class Transition:
 
-    def __init__(self,read:Symbol,write:Symbol,movement:MoveTo,futur_state:int):
+    def __init__(self,read:Symbol,write:Symbol,movement:MoveTo,futur_state:'State'):
         assert isinstance(read,Symbol), f"ERROR : A Transition take in input of it constructor a Symbol object for it's field : read.\nYour input : {read}"
         assert isinstance(write,Symbol), f"ERROR : A Transition take in input of it constructor a Symbol object for it's field : write.\nYour input : {write}"
         assert isinstance(movement,MoveTo), f"ERROR : A Transition take in input of it constructor a MoveTo object for it's field : movement.\nYour input : {movement}"
-        assert isinstance(futur_state,MoveTo), f"ERROR : A Transition take in input of it constructor an int object for it's field : futur_state.\nYour input : {futur_state}"
+        assert isinstance(futur_state,State), f"ERROR : A Transition take in input of it constructor an State object for it's field : futur_state.\nYour input : {futur_state}"
         self._read = read
         self._write = write
         self._movement = movement
@@ -56,9 +58,13 @@ class Transition:
         assert isinstance(new_movement,MoveTo), "ERROR : The mocement of a 'Transition' need to be a 'MoveTo'"
         self._movement = new_movement
 
-    def set_futur_state(self, new_futur_state:int):
-        assert isinstance(new_futur_state,int), "ERROR : The futur_state of a 'Transition' need to be a 'int'"
+    def set_futur_state(self, new_futur_state:'State'):
+        assert isinstance(new_futur_state,State), "ERROR : The futur_state of a 'Transition' need to be a 'int'"
         self._futur_state = new_futur_state
+
+    def from_args(read:str,write:str,movement:str) -> 'Transition':
+        """This function create a transition without an empty futur_state."""
+        return Transition(Symbol(read), Symbol(write), MoveTo(movement), State([], False))
 
     read = property(lambda x: x._read,set_read)
     write = property(lambda x: x._write,set_write)
@@ -66,7 +72,7 @@ class Transition:
     futur_state = property(lambda x: x._futur_state,set_futur_state)
 
     def __repr__(self):
-        return f"\nTransition :\nread : {self._read} ; write : {self._write} ;\nmovement : {self._movement} ; futur_state : {self._futur_state}"
+        return f"\nTransition :\nread : {self._read} ; write : {self._write} ;\nmovement : {str(self._movement)} ; futur_state : {id(self._futur_state)}"
     
 class State:
 
@@ -86,7 +92,7 @@ class State:
         representation = f"state is final : {self._final}"
         for transition in self._transitions : representation += f"\n{transition}"
         return representation
-    
+
     transitions = property(lambda x: x._transitions,set_transitions)
     final = property(lambda x: x._final,set_final)  
 
@@ -138,11 +144,11 @@ class Tape:
             return new_tape
         
     def repr_left(self):
-        if self._left == None : return ""
+        if self._left == None : return "None"
         else : return f"|{self._left.repr_left()}|{self._left.symbol}"
 
     def repr_right(self):
-        if self._right == None : return ""
+        if self._right == None : return "None"
         else : return f"{self._right.symbol}|{self._right.repr_right()}|"
         
     def __repr__(self):
@@ -155,7 +161,7 @@ class Tape:
 
 class Configuration:
 
-    def __init__(self, tape:Tape, current_state:int):
+    def __init__(self, tape:Tape, current_state:State):
         self._tape = tape
         self._current_state = current_state
 
@@ -163,16 +169,16 @@ class Configuration:
         assert isinstance(new_tape,Tape), "ERROR : The 'Configuration' property 'tape' need to be a 'Tape' object."
         self._tape = new_tape
 
-    def set_current_state(self,new_current_state:int):
-        assert isinstance(new_current_state,int), "ERROR : The 'Configuration' property 'current_state' need to be a 'int' object."
-        self._tape = new_current_state
+    def set_current_state(self,new_current_state:State):
+        assert isinstance(new_current_state,State), "ERROR : The 'Configuration' property 'current_state' need to be a 'State' object."
+        self._current_state = new_current_state
 
-    def update(self, transitions:list[Transition]) -> bool:
-        current_symbol = self._tape.symbol
-        for transition in transitions:
+    def update(self) -> bool:
+        current_symbol:Symbol = self._tape.symbol
+        for transition in self._current_state.transitions:
             if transition.read == current_symbol:
                 self._tape.set_symbol(transition.write)
-                match transition.movement:
+                match transition.movement.move:
                     case 1: self.set_tape(self._tape.move_left())
                     case 2: self.set_tape(self._tape.move_right())
                 self.set_current_state(transition.futur_state)
@@ -180,14 +186,14 @@ class Configuration:
         return False
     
     def __repr__(self):
-        return f"-- Configuration --\nCurrent State : {self._current_state}\n{self._tape}"
+        return f"-- Configuration --\nCurrent State : {self._current_state}\n\nTape :\n{self._tape}"
 
     tape = property(lambda x: x._tape,set_tape)
     current_state = property(lambda x: x._current_state,set_current_state)
 
 class TuringMachine:
 
-    def __init__(self, configuration:Configuration, states:Dict[int, State]):
+    def __init__(self, configuration:Configuration, states:set[State]):
         self._configuration = configuration
         self._states = states
         self._step = 0
@@ -196,8 +202,8 @@ class TuringMachine:
         assert isinstance(new_configuration,Configuration), "ERROR : The 'TuringMachine' property 'configuration' need to be a 'Configuration' object."
         self._configuration = new_configuration
 
-    def set_states(self, new_states:Dict[int, State]):
-        assert isinstance(new_states,Dict[int, State]), "ERROR : The 'TuringMachine' property 'configuration' need to be a 'Dict[int, State]' object."
+    def set_states(self, new_states:set[State]):
+        assert isinstance(new_states,set[State]), "ERROR : The 'TuringMachine' property 'configuration' need to be a 'Dict[int, State]' object."
         self._states = new_states
 
     def set_step(self, new_step:int):
@@ -205,20 +211,18 @@ class TuringMachine:
         self._step = new_step
 
     def check_final(self) -> bool:
-        return self._states[self._configuration.current_state].final
+        return self._configuration.current_state.final
 
     def run(self) -> bool:
         active = True
         while active:
-            current_state = self._configuration.current_state
-            active = self._configuration.update(self._states[current_state])
+            active = self._configuration.update()
         return self.check_final()
 
     def run_with_limit(self,limit:int) -> bool:
         active = True
         while active and self._step<limit:
-            current_state = self._configuration.current_state
-            active = self._configuration.update(self._states[current_state])
+            active = self._configuration.update()
             self._step += 1
         return self.check_final()
 
@@ -230,5 +234,30 @@ class TuringMachine:
     step = property(lambda x: x._step,set_step)
 
 if __name__ == '__main__':
-    tape = Tape.from_liste(["1","2","3"])
-    print(tape)
+    tape = Tape.from_liste(["0","1","0"])
+
+    ACCEPT = State([],True)
+    START = State([Transition.from_args("_","_","-"), Transition.from_args("0","0",">"), Transition.from_args("1","1",">")], False)
+    RIGHT = State([Transition.from_args("0","0",">"), Transition.from_args("1","1",">"), Transition.from_args("_","_","<")], False)
+    ADD = State([Transition.from_args("0","1","-"), Transition.from_args("1","0","<"), Transition.from_args("_","1","-")], False)
+
+    START.transitions[1].set_futur_state(RIGHT)
+    START.transitions[2].set_futur_state(RIGHT)
+    RIGHT.transitions[0].set_futur_state(RIGHT)
+    RIGHT.transitions[1].set_futur_state(RIGHT)
+    RIGHT.transitions[2].set_futur_state(ADD)
+    ADD.transitions[0].set_futur_state(ACCEPT)
+    ADD.transitions[1].set_futur_state(ADD)
+    ADD.transitions[2].set_futur_state(ACCEPT)
+
+    print(
+        f"Adress :\nStart : {id(START)}\nRIGHT : {id(RIGHT)}\nADD : {id(ADD)}\n"
+    )
+
+    configuration = Configuration(tape,START)
+    mt = TuringMachine(configuration,set())
+    print(mt)
+
+    mt.run()
+    print("\n\n")
+    print(mt)
