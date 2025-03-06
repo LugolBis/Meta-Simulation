@@ -17,10 +17,10 @@
 
   \section{Question 2}
       Une configuration d'un automate cellulaire à l'instant t n'a besoin que des données
-  de sa bande. On représentera un état de cellule par une énumération `Vivant, Mort, Blanc`.
+  de sa bande. On représentera un état de cellule par une énumération `Vivant, Mort`.
   Une cellule est un 2-uplet d'état représentant l'état courant et l'état au temps t+1.
   Pour représenter la bande (grille) en elle-même, le mieux est d'utiliser une liste doublement
-  chaînée. Cela permet de garantire les opérations d'ajout à gauche et à droite en un temps
+  chaînée. Cela permet de garantir les opérations d'ajout à gauche et à droite en un temps
   O(1). De plus, tout indexage de la bande se fait au cours d'une itération complète, ainsi
   le problème de la complexité O(n) pour accéder à un élément précis ne se pose pas.
 
