@@ -2,8 +2,12 @@ PYTHON = venv/bin/python3
 TEX_DIR = tex
 VENV = venv
 
-all: rapport.pdf $(VENV)
-	@echo 'Fin !'
+all: rapport.pdf $(VENV)/pygame_installed src/cellular_automata.py
+	@$(PYTHON) src/cellular_automata.py
+
+$(VENV)/pygame_installed: $(VENV)
+	@$(PYTHON) -m pip install pygame
+	@touch $(VENV)/pygame_installed
 
 $(VENV): 
 	@python3 -m venv $(VENV)
