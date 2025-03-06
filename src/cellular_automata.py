@@ -224,8 +224,8 @@ if __name__ == '__main__':
         c.push_back(State.Dead)
         c.push_front(State.Dead)
 
-    a = CellularAutomaton([False, True, False, False, True, False, False, False])
-
+    a = CellularAutomaton([False, True, True, True, True, False, True, False])
+    #                        000   001   010   011   100   101    110   111
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
     clock = pygame.time.Clock()
@@ -245,19 +245,20 @@ if __name__ == '__main__':
         right = center
         i = 0
         while left != None or right != None:
-            left_coord = 390 - 20 * i
-            right_coord = 390 + 20 * i
+            left_coord = 390 - 19 * i
+            right_coord = 390 + 19 * i
 
             if left != None:
                 if left.get_value().get_current_state() == State.Alive:
                     pygame.draw.rect(screen, "black", (left_coord, 295, 20, 20))    
-                pygame.draw.rect(screen, "black", (left_coord, 295, 20, 20), 2)
+                pygame.draw.rect(screen, "black" if i != 0 else "red", (left_coord, 295, 20, 20), 2)
                 left = left.get_towards(Direction.Left)
 
-            if right != None and i != 0:
-                if right.get_value().get_current_state() == State.Alive:
-                    pygame.draw.rect(screen, "black", (right_coord, 295, 20, 20))
-                pygame.draw.rect(screen, "black", (right_coord, 295, 20, 20), 2)
+            if right != None:
+                if i != 0:
+                    if right.get_value().get_current_state() == State.Alive:
+                        pygame.draw.rect(screen, "black", (right_coord, 295, 20, 20))
+                    pygame.draw.rect(screen, "black", (right_coord, 295, 20, 20), 2)
 
                 right = right.get_towards(Direction.Right)
             i += 1
