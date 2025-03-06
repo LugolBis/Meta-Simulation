@@ -1,64 +1,230 @@
+def assert_type(val, t):
+    '''
+        Checks if `val` is of type `t` and throws a (catchable) `ValueError` if not.
+    '''
+    if val != None and not isinstance(val, t):
+        raise ValueError(f'Wrong type ! Found : {val} of type {str(type(val)).split("'")[1]} instead of {str(t).split("'")[1]}.')
+
+class State:
+    '''
+        Simple C style enumeration for code readability.
+    '''
+    Dead  = False
+    Alive = True
+
 class Cell:
+    '''
+        Glorified 2-uplet (current: State, next: State)
+    '''
+    def __init__(self, state):
+        assert_type(state, bool)
 
-    def __init__(self, alive:bool=False):
-        assert isinstance(alive,bool), "ERROR : alive field of a 'Cell' object need to be a bool."
-        self._alive = alive
+        self._current_state = state
+        self._next_state = None
 
-    def set_alive(self,new_alive:bool):
-        assert isinstance(new_alive,bool), "ERROR : alive field of a 'Cell' object need to be a bool."
-        self._alive = new_alive
+    def update(self):
+        if self._next_state == None:
+            raise ValueError('Tried to update a Cell with no next state.')
+        else:
+            self._current_state = self._next_state
+            self._next_state = None
 
-    alive = property(lambda x:x._alive,set_alive)
+    def get_current_state(self):
+        return self._current_state
 
-class Tape:
+    def set_next_state(self, state):
+        assert_type(state, bool)
 
-    def __init__(self, left:'Tape', right:'Tape'):
-        self._cell = Cell()
+        self._next_state = state
+
+
+class Direction:
+    '''
+        Another C style enumeration.
+        TODO: Change to `bool` values and check if
+              it doesn't break anything (it will)
+    '''
+    Left  = 0
+    Right = 1
+
+class LinkedListNode:
+    '''
+        <b>Double<b>LinkedListNode was too long to type
+    '''
+    def __init__(self, left, right, value):
+        assert_type(left, LinkedListNode)
+        assert_type(right, LinkedListNode)
+        # No assert type on `value` so that this type
+        # can be used genericly
+
         self._left = left
         self._right = right
+        self._value = value
 
-    def set_cell(self, new_cell:Cell):
-        assert isinstance(new_cell,Cell), "ERROR : The cell of a 'Tape' need to be a 'cell'"
-        self._cell = new_cell
+    def get_towards(self, d):
+        assert_type(d, int)
 
-    def set_left(self, new_left:'Tape'):
-        assert isinstance(new_left,Tape), "ERROR : The left of a 'Tape' need to be a 'Tape'"
-        self._left = new_left
+        match d:
+            case Direction.Left:
+                return self._left
+            case Direction.Right:
+                return self._right
 
-    def set_right(self, new_right:'Tape'):
-        assert isinstance(new_right,Tape), "ERROR : The right of a 'Tape' need to be a 'Tape'"
-        self._right = new_right
+    def set_towards(self, d, v):
+        assert_type(d, int)
+        assert_type(v, LinkedListNode)
 
-    def from_liste(liste:list[bool]) -> 'Tape':
-        tape = Tape(None,None)
-        if len(liste)>0:
-            cell = Cell(liste.pop(0))
-            tape.set_cell(cell)
-            right_tape = Tape.from_liste(liste)
-            right_tape.set_left(tape)
-            tape.set_right(right_tape)
-            return tape
-        else:
-            return tape
-        
-    def get_cells(self):
-        current = self.cell
-        left = False if self._left == None else self._left.cell
-        right = False if self._right == None else self._right.cell
-        return tuple(left,current,right)
-        
-    def repr_left(self):
-        if self._left == None : return "None"
-        else : return f"|{self._left.repr_left()}|{self._left.cell}"
+        match d:
+            case Direction.Left:
+                self._left = v
+            case Direction.Right:
+                self._right = v
 
-    def repr_right(self):
-        if self._right == None : return "None"
-        else : return f"{self._right.cell}|{self._right.repr_right()}|"
-        
+    def get_value(self):
+        return self._value
+
+
+class Config:
+    '''
+        Encapsulate a cellular automaton's tape with references
+        to its leftmost and rightmost nodes so that any push
+        operation is O(1).
+        TODO: Make attributes private
+    '''
+
+    def __init__(self, first):
+        assert_type(first, bool)
+
+        self.leftmost = LinkedListNode(None, None, Cell(first))
+        self.rightmost = self.leftmost
+
+    def push_back(self, current_state, next_state = None):
+        '''
+            Pushes the right end in O(1).
+        '''
+        assert_type(current_state, bool)
+        assert_type(next_state, bool)
+
+        self.rightmost.set_towards(Direction.Right, LinkedListNode(self.rightmost, None, Cell(current_state)))
+        self.rightmost = self.rightmost.get_towards(Direction.Right)
+        self.rightmost.get_value().set_next_state(next_state)
+
+    def push_front(self, current_state, next_state = None):
+        '''
+            Pushes the left end in O(1)
+        '''
+        assert_type(current_state, bool)
+        assert_type(next_state, bool)
+
+        self.leftmost.set_towards(Direction.Left, LinkedListNode(None, self.leftmost, Cell(current_state)))
+        self.leftmost = self.leftmost.get_towards(Direction.Left)
+        self.leftmost.get_value().set_next_state(next_state)
+
     def __repr__(self):
-        representation = f"{self.repr_left()}| {self._cell} |{self.repr_right()}"
-        return representation
+        '''
+            Nice formatting
+        '''
+        current = self.leftmost
+        to_return = "|"
+        while current != None:
+            to_return += f" {int(current.get_value().get_current_state())} |"
+            current = current.get_towards(Direction.Right)
 
-    cell = property(lambda x: x._cell,set_cell)
-    left = property(lambda x: x._left,set_left)
-    right = property(lambda x: x._right,set_right)
+        return to_return
+
+class CellularAutomaton:
+    '''
+        Contains the rules to be applied as an 8 bit long array.
+        This ensures that the user defines each and every transition
+        and that their is one and only one transition per boolean 3-uplet.
+    '''
+
+    def __init__(self, rules):
+        if len(rules) != 8:
+            raise ValueError('Expected 8 rules.')
+        else:
+            for r in rules:
+                assert_type(r, bool)
+            self._rules = rules
+
+    def encode_state_bits(left_bit, middle_bit, right_bit):
+        '''
+            Takes 3 booleans and transform them into an integer.
+        '''
+        assert_type(left_bit, bool)
+        assert_type(middle_bit, bool)
+        assert_type(right_bit, bool)
+
+        return (left_bit << 2) + (middle_bit << 1) + (right_bit << 0)
+
+    def step(self, config):
+        '''
+            Updates `config` with the set of rules `self._rules`
+        '''
+
+        assert_type(config, Config)
+
+        # Check if we should enlarge the tape by its left end
+        left_bit   = False
+        middle_bit = False
+        right_bit = config.leftmost.get_value().get_current_state()
+
+        code = CellularAutomaton.encode_state_bits(left_bit, middle_bit, right_bit)
+
+        if self._rules[code] == True:
+            config.push_front(State.Dead, State.Alive)
+
+        # Iterating over the whole list left to right and updating next states
+        current = config.leftmost
+        last = None
+        while current != None:
+            # (`next` seems no be a python keyword but this is how this variable should be named)
+            nex = current.get_towards(Direction.Right)
+
+            # Getting surroundings code
+            left_bit = last != None and last.get_value().get_current_state()
+            middle_bit = current.get_value().get_current_state()
+            right_bit = nex != None and nex.get_value().get_current_state()
+
+            code = CellularAutomaton.encode_state_bits(left_bit, middle_bit, right_bit)
+
+            current.get_value().set_next_state(self._rules[code])
+
+            # Moving forward
+            last = current
+            current = current.get_towards(Direction.Right)
+
+        # Check if we should enlarge the list by its right end
+        left_bit = last.get_value().get_current_state()
+        middle_bit = False
+        right_bit = False
+
+        code = CellularAutomaton.encode_state_bits(left_bit, middle_bit, right_bit)
+
+        if self._rules[code] == True:
+            config.push_back(State.Dead, State.Alive)
+        
+        # Iterating over the tape right to left and committing changes
+        current = config.rightmost
+        while current != None:
+            current.get_value().update()
+
+            # Moving backwards
+            config.leftmost = current
+            current = current.get_towards(Direction.Left)
+
+
+if __name__ == '__main__':
+    # Little test
+
+    c = Config(State.Alive)
+    for i in range(2):
+        c.push_back(State.Dead)
+        c.push_front(State.Dead)
+
+    a = CellularAutomaton([False, False, False, False, True, False, False, False])
+
+    print(c)
+    for i in range(10):
+        a.step(c)
+        print(c)
