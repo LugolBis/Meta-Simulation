@@ -216,6 +216,7 @@ class TuringMachine:
             tape = Tape.from_liste(fs.readline().strip().split(","))
 
             for line in fs:
+                line = line.strip()
                 if line != "":
                     try:
                         current_state, read, futur_state, write, move = line.strip().split(",")
