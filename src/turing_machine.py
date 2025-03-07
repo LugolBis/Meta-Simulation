@@ -81,8 +81,12 @@ class State:
         self._final = final
 
     def set_transitions(self, new_transitions:list[Transition]):
-        assert isinstance(new_transitions,list[Transition]), "ERROR : The transitions property of a 'State' need to be a 'list[Transition]' object."
+        #assert isinstance(new_transitions,list[Transition]), "ERROR : The transitions property of a 'State' need to be a 'list[Transition]' object."
         self._transitions = new_transitions
+
+    def append_transition(self, new_transition:Transition):
+        assert isinstance(new_transition,Transition), "ERROR : The transitions property of a 'State' need to be a 'Transition' object."
+        self._transitions.append(new_transition)
 
     def set_final(self, new_final:bool):
         assert isinstance(new_final, bool), "ERROR : The final property of a 'State' need to be a 'bool'."
@@ -200,6 +204,38 @@ class TuringMachine:
         self._states = states
         self._step = 0
 
+    def from_script(path:str) -> 'TuringMachine':
+        BUFFER = {} # key : state name, value : (State, []) the list contains the names of the futurs_states
+        with open (path,"r") as fs:
+            init_state = fs.readline().strip()
+
+            finals = fs.readline().strip().split(",")
+            for final_state in finals:
+                BUFFER[final_state] = (State([],True),[])
+            
+            tape = Tape.from_liste(fs.readline().strip().split(","))
+
+            for line in fs:
+                if line != "":
+                    try:
+                        current_state, read, futur_state, write, move = line.strip().split(",")
+                        if current_state in BUFFER.keys():
+                            BUFFER[current_state][0].append_transition(Transition.from_args(read,write,move))
+                            BUFFER[current_state][1].append(futur_state)
+                        else:
+                            BUFFER[current_state] = (State([Transition.from_args(read,write,move)], False), [futur_state])
+                    except Exception as error:
+                        raise error
+            
+        for key, value in BUFFER.items():
+            new_transitions = value[0].transitions
+            for index, futur_state in enumerate(value[1]):
+                if futur_state in BUFFER.keys():
+                    new_transitions[index].set_futur_state(BUFFER[futur_state][0])
+            BUFFER[key][0].set_transitions(new_transitions)
+            
+        return TuringMachine(Configuration(tape,BUFFER[init_state][0]),set())
+
     def set_configuration(self, new_configuration:Configuration):
         assert isinstance(new_configuration,Configuration), "ERROR : The 'TuringMachine' property 'configuration' need to be a 'Configuration' object."
         self._configuration = new_configuration
@@ -236,30 +272,7 @@ class TuringMachine:
     step = property(lambda x: x._step,set_step)
 
 if __name__ == '__main__':
-    tape = Tape.from_liste(["0","1","0"])
-
-    ACCEPT = State([],True)
-    START = State([Transition.from_args("_","_","-"), Transition.from_args("0","0",">"), Transition.from_args("1","1",">")], False)
-    RIGHT = State([Transition.from_args("0","0",">"), Transition.from_args("1","1",">"), Transition.from_args("_","_","<")], False)
-    ADD = State([Transition.from_args("0","1","-"), Transition.from_args("1","0","<"), Transition.from_args("_","1","-")], False)
-
-    START.transitions[1].set_futur_state(RIGHT)
-    START.transitions[2].set_futur_state(RIGHT)
-    RIGHT.transitions[0].set_futur_state(RIGHT)
-    RIGHT.transitions[1].set_futur_state(RIGHT)
-    RIGHT.transitions[2].set_futur_state(ADD)
-    ADD.transitions[0].set_futur_state(ACCEPT)
-    ADD.transitions[1].set_futur_state(ADD)
-    ADD.transitions[2].set_futur_state(ACCEPT)
-
-    print(
-        f"Adress :\nStart : {id(START)}\nRIGHT : {id(RIGHT)}\nADD : {id(ADD)}\n"
-    )
-
-    configuration = Configuration(tape,START)
-    mt = TuringMachine(configuration,set())
-    print(mt)
-
+    mt = TuringMachine.from_script("/home/lugolbis/Bureau/UVSQ/L3_Info/S6/IN620/IN620/res/test.txt")
     mt.run()
     print("\n\n")
     print(mt)
