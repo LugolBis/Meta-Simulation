@@ -3,7 +3,8 @@ def assert_type(val, t):
         Checks if `val` is of type `t` and throws a (catchable) `ValueError` if not.
     '''
     if val != None and not isinstance(val, t):
-        raise ValueError(f'Wrong type ! Found : {val} of type {str(type(val)).split("'")[1]} instead of {str(t).split("'")[1]}.')
+        found = str(type(val)).split("'")[1] ; expected = str(t).split("'")[1]
+        raise ValueError(f'Wrong type ! Found : {val} of type {found} instead of {expected}.')
 
 class State:
     '''

@@ -1,6 +1,6 @@
 start
 accept
-1,1,1
+0,1,1
         
 start,_,reject,_,-
 

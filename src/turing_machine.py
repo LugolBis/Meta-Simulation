@@ -1,3 +1,5 @@
+import pygame
+
 class Symbol:
 
     def __init__(self, symbol:str="_"):
@@ -127,6 +129,8 @@ class Tape:
             right_tape = Tape.from_liste(liste)
             right_tape.set_left(tape)
             tape.set_right(right_tape)
+            left_tape = Tape(None,tape)
+            tape.set_left(left_tape)
             return tape
         else:
             return tape
@@ -148,12 +152,12 @@ class Tape:
             return new_tape
         
     def repr_left(self):
-        if self._left == None : return "None"
-        else : return f"|{self._left.repr_left()}|{self._left.symbol}"
+        if self._left == None : return ""
+        else : return f"|{self._left.repr_left()}|{self._left.symbol}".removeprefix("||")
 
     def repr_right(self):
-        if self._right == None : return "None"
-        else : return f"{self._right.symbol}|{self._right.repr_right()}|"
+        if self._right == None : return ""
+        else : return f"{self._right.symbol}|{self._right.repr_right()}|".removesuffix("||")
         
     def __repr__(self):
         representation = f"{self.repr_left()}|> {self._symbol} <|{self.repr_right()}"
@@ -273,7 +277,61 @@ class TuringMachine:
     step = property(lambda x: x._step,set_step)
 
 if __name__ == '__main__':
-    mt = TuringMachine.from_script("/home/lugolbis/Bureau/UVSQ/L3_Info/S6/IN620/IN620/res/test.txt")
+    TM:TuringMachine = TuringMachine.from_script("/home/lugolbis/Bureau/UVSQ/L3_Info/S6/IN620/IN620/res/test.txt")
+
+    pygame.init()
+    screen = pygame.display.set_mode((800, 600))
+    font = pygame.font.SysFont('Arial', 25)
+    clock = pygame.time.Clock()
+    running = True
+    compteur = 0
+    result = ""
+
+    while running or result!="":
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                result=""
+
+        screen.fill("white")
+
+        pygame.draw.rect(screen, (217,167,161), (385, 295, 25, 25))
+        screen.blit(font.render(f"{TM.configuration.tape.symbol}", True, (0,0,0)), dest=(390, 295, 20, 20))
+        if result!="":
+            screen.blit(font.render(f"Result : {result}", True, (0,0,0)), dest=(440, 345, 60, 60))
+        
+        i=1
+        left = TM.configuration.tape.left
+        right = TM.configuration.tape.right
+
+        while left!=None or right!=None:
+            left_coord = 385 - 25 * i
+            right_coord = 385 + 25 * i
+
+            if isinstance(left,Tape):
+                pygame.draw.rect(screen, (0,167,161), (left_coord, 295, 25, 25))
+                screen.blit(font.render(f"{left.symbol}", True, (0,0,0)), dest=(left_coord, 295, 20, 20))
+                left = left.left
+
+            if isinstance(right,Tape):
+                pygame.draw.rect(screen, (0,167,161), (right_coord, 295, 25, 25))
+                screen.blit(font.render(f"{right.symbol}", True, (0,0,0)), dest=(right_coord, 295, 20, 20))
+                right = right.right
+
+            i+=1
+
+        pygame.display.flip()
+
+        clock.tick(60)
+        compteur = (compteur + 1)%25
+        if compteur == 0:
+            if TM.configuration.update()== False:
+                running = False
+                result = f'ACCEPT : {TM.check_final()}'
+
+    """
     mt.run()
     print("\n\n")
     print(mt)
+    """
