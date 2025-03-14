@@ -10,6 +10,8 @@
 
     # Grammaire
         (Les commentaires sont ignorés)
+        (Cela inclu aussi les commentaires enchassés)
+        (/* You can't do that in C */)
 
         Automate    -> Transitions Mot
         Transitions -> (Etat'\n')⁸
