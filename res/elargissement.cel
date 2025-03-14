@@ -1,0 +1,38 @@
+/*
+    # Elargissement
+        Automate cellulaire d'élargissement de la bande sans artéfact
+    
+    # Syntaxe en regex
+        '//' [a-z]*      : Commentaire simple
+        '/*' [a-z]* '*/' : Commentaire multi-ligne
+        Mort             : La case n'est pas allumée
+        Vivant           : La case est allumée
+
+    # Grammaire
+        (Les commentaires sont ignorés)
+
+        Automate    -> Transitions Mot
+        Transitions -> (Etat'\n')⁸
+        Mot         -> Etat | Mot','Mot
+        Etat        -> 'Mort' | 'Vivant'
+
+*/
+
+// 000
+Mort
+// 001
+Vivant
+// 010
+Mort
+// 011
+Mort
+// 100
+Vivant
+// 101
+Vivant
+// 110
+Mort
+// 111
+Mort
+
+Vivant, Mort, Vivant // Mot d'entrée

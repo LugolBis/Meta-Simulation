@@ -3,7 +3,7 @@ TEX_DIR = tex
 VENV = venv
 
 all: rapport.pdf $(VENV)/pygame_installed src/cellular_automata.py
-	@$(PYTHON) src/cellular_automata.py
+	@$(PYTHON) src/main.py res/elargissement.cel
 
 $(VENV)/pygame_installed: $(VENV)
 	@$(PYTHON) -m pip install pygame
