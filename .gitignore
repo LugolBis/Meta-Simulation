@@ -3,3 +3,4 @@
 /tex/*.aux
 /tex/*.log
 *.pdf
+/src/__pycache__
