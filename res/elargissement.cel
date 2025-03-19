@@ -1,40 +1,26 @@
-/*
-    # Elargissement
-        Automate cellulaire d'élargissement de la bande sans artéfact
+// Cet automate élargis la bande sur ses deux extrémités
+// Toutes les transitions non préciséés sont de la forme:
+// (A, B, C) -> B
+// (Pratique pour rester succin)
+
+
+Colors:
+    Extremité <- (0,   0, 0),
+    Centre    <- (0, 255, 0)
+
+States:
+    BordGauche (Extremité),
+    BordDroit (Extremité),
+    Passé (Centre)
     
-    # Syntaxe en regex
-        '//' [a-z]*      : Commentaire simple
-        '/*' [a-z]* '*/' : Commentaire multi-ligne
-        Mort             : La case n'est pas allumée
-        Vivant           : La case est allumée
-
-    # Grammaire
-        (Les commentaires sont ignorés)
-        (Cela inclu aussi les commentaires enchassés)
-        (/* You can't do that in C */)
-
-        Automate    -> Transitions Mot
-        Transitions -> (Etat'\n')⁸
-        Mot         -> Etat | Mot','Mot
-        Etat        -> 'Mort' | 'Vivant'
-
-*/
-
-// 000
-Mort
-// 001
-Vivant
-// 010
-Mort
-// 011
-Mort
-// 100
-Vivant
-// 101
-Vivant
-// 110
-Mort
-// 111
-Mort
-
-Vivant, Mort, Vivant // Mot d'entrée
+Transitions:
+    // A gauche
+    (Blank, Blank, BordGauche) -> BordGauche,
+    (Blank, BordGauche, Passé) -> Passé,
+    
+    // A droite
+    (BordDroit, Blank, Blank) -> BordDroit,
+    (Passé, BordDroit, Blank) -> Passé
+    
+Initialisation:
+    BordGauche, Passé, Passé, BordDroit

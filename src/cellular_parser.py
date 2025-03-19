@@ -1,156 +1,204 @@
-'''
-    Automate    -> Transitions Mot '\n'? Eof
-    Transitions -> (Etat'\n')⁸
-    Mot         -> Etat | Etat','Mot
-    Etat        -> 'Mort' | 'Vivant'
-'''
 
-from cellular_automata import CellularAutomaton, Config
+from ast import Eq
 
-class Token:
-    Unknown = 0
-    State = 1
-    BreakLine = 2
-    Separator = 3
-    EndOfFile = 4
-    def __init__(self, text):
-        self.text = text
-        if text == '\n':
-            self.value = Token.BreakLine
-        elif text == ',':
-            self.value = Token.Separator
-        elif text == 'Vivant' or text == 'Mort':
-            self.value = Token.State
-        elif text == "":
-            self.value = Token.Unknown
-        elif text == "\0":
-            self.value = Token.EndOfFile
-        else:
-            raise ValueError(f'Unknown text : {text}')
 
+class IntRef:
+    def __init__(self, value):
+        self.value = value
+        
+    @property
+    def v(self): return self.value
+    
+    def increment(self, offset = 1):
+        self.value += offset
+    def decrement(self, offset = 1):
+        self.value -= offset
+    
+    def __eq__(self, v: int):
+        return self.value == v
+    def __lt__(self, v: int):
+        return self.value < v
+    def __gt__(self, v: int):
+        return self.value > v
     def __repr__(self):
-        if self.text == '\n':
-            return 'LineBreak'
-        elif self.text == ',':
-            return 'Separator'
-        elif self.text == '\0':
-            return 'EOF'
-        else:
-            return self.text
+        return str(self.value)
 
-class ParserState:
-    Transitions = 0
-    LetterOfWord = 1
-    NextLetter = 2
-    Done = 3
+def parsing_error_str(cursor: int, expected: str, found: str):
+    if found == ' ':
+        found = 'space'
+    elif found == '\t':
+        found = 'indentation'
+    elif found == '\n':
+        found = 'line break'
+    
+    return f'Error at byte {cursor}. expected: "{expected}", found: "{found}".'
 
+def skip_empty_lines(source: str, cursor: IntRef):
+    while cursor < len(source) and source[cursor.v].isspace():
+        cursor.increment()
 
-def tokenize(source):
-    tokens = []
-    multiline_comment_level = 0 
-    in_simple_comment = False
-    max_token_length = 6
-    window = "\0\0"
+def number_parser(source: str, cursor: IntRef) -> int:
+    '''
+        Returns parsed integer contained in any `str`.
+        Accepts underscore and spaces in number.
+        Raises a `ValueError` if source does not contain
+        any number at cursor.
+    '''
+    parsed = ""
+    while cursor < len(source):
+        current = source[cursor.v]
+        if '0' <= current <= '9':
+            parsed += current
+        elif current != '_' and current != ' ':
+            break
+        cursor.increment()
+    
+    if parsed == "":
+        raise ValueError(f'No number at cursor {cursor}.')
+    return int(parsed)
+    
 
-    i = 0
-    l = len(source)
-    while i < l:
-        if source[i] != ' ':
-            window = window[1] + source[i]
-            if multiline_comment_level != 0:
-                if window == '*/':
-                    multiline_comment_level -= 1
-                elif window == '/*':
-                    multiline_comment_level += 1
-            elif in_simple_comment:
-                if source[i] == '\n':
-                    in_simple_comment = False
-                    tokens.append(Token(source[i]))
-            else:
-                new_token = Token("")
-                j = i
-                m = j + max_token_length
-                buffer = ""
-                found_comment = False
-                while j < m:
-                    buffer += source[j]
-                    if buffer == '/*':
-                        multiline_comment_level = 1
-                        found_comment = True
-                        break
-                    elif buffer == '//':
-                        in_simple_comment = True
-                        found_comment = True
+def tuple_parser(source: str, cursor: IntRef):
+    '''
+        Parses a tuple of integers.
+        blank characters (except line break) ignored.
+    '''
+    state = 0
+    parsed = None
+    while cursor < len(source):
+        current = source[cursor.v]
+        if current != ' ' and current != '\t':
+            match state:
+                case 0:
+                    # Before opening parenthesis
+                    if current == '(':
+                        parsed = []
+                        state = 1
+                    else:
+                        raise ValueError(parsing_error_str(cursor.v, '(', current))
+                case 1:
+                    # Value parsing
+                    parsed.append(number_parser(source, cursor)) # type: ignore
+                    cursor.decrement()
+                    state = 2
+                case 2:
+                    # Making sure separator or closing is here
+                    if current == ',':
+                        state = 1
+                    elif current == ')':
                         break
                     else:
-                        try:
-                            new_token = Token(buffer)
-                        except:
-                            pass
-                    j += 1
-                
-                if not found_comment:
-                    if new_token.value == Token.Unknown:
-                        raise ValueError(f'Unknown token : {buffer}')
-                    else:
-                        i += len(new_token.text) - 1
-                        tokens.append(new_token)
-                else:
-                    i += 1
-
-        i += 1
+                        raise ValueError(parsing_error_str(cursor.v, 'separator or closed parenthesis', current))
+                    
+        cursor.increment()
+    
+    return tuple(parsed) # type: ignore
 
 
-    tokens.append(Token('\0'))
-
-    return tokens
-
-def parse(tokens):
-    state = ParserState.Transitions
-    transitions = []
-    init_word = []
-
-    i = 0
-    while i < len(tokens):
-        token = tokens[i]
-        if (i==0 and token.value == Token.BreakLine) or (i > 0 and token.value == Token.BreakLine and tokens[i-1].value == Token.BreakLine):
-            i += 1
-            continue
-
+def name_parser(source: str, cursor: IntRef):
+    state = 0
+    parsed = ""
+    while cursor < len(source):
+        current = source[cursor.v]
         match state:
-            case ParserState.Transitions:
-                if token.value == Token.State:
-                    transitions.append(token.text == "Vivant")
-                    if len(transitions) == 8:
-                        state = ParserState.LetterOfWord
-                    if i+1 >= len(tokens) or tokens[i+1].value != Token.BreakLine:
-                        raise ValueError(f'Expected line break, found "{tokens[i+1].text}".')
-                    else:
-                        i += 1
+            case 0:
+                # Before name
+                if current.isalpha():
+                    parsed += current
+                    state = 1
+                elif current != ' ' and current != '\t':
+                    raise ValueError(parsing_error_str(cursor.v, 'letter', current))
+            case 1:
+                if current.isalpha():
+                    parsed += current
                 else:
-                    raise ValueError(f'Unexpected token while parsing transitions : "{token}". Expected "Vivant" or "Mort".')
-            case ParserState.LetterOfWord:
-                if token.value == Token.State:
-                    init_word.append(token.text == 'Vivant')
-                    state = ParserState.NextLetter
-                else:
-                    raise ValueError(f'Unexpected token while parsing initial word : "{token}". Expected "Vivant" or "Mort".')
-            case ParserState.NextLetter:
-                if token.value == Token.Separator:
-                    state = ParserState.LetterOfWord
-                elif token.value == Token.EndOfFile or token.value == Token.BreakLine:
-                    state = ParserState.Done
-                else:
-                    raise ValueError(f'Unexpected token while parsing initial word: "{token}". Expected ",", line break or EOF.')
-            case ParserState.Done:
-                if token.value != Token.BreakLine and token.value != Token.EndOfFile:
-                    raise ValueError(f'Tokens after EOF : "{token}".')
+                    break
+        cursor.increment()
+    return parsed
 
-        i += 1
+def dummy_name_parser(source: str, cursor: IntRef):
+    return (name_parser(source, cursor), None)
 
-    automaton = CellularAutomaton(transitions)
-    config = Config(init_word[0])
-    for i in range(1, len(init_word)):
-        config.push_back(init_word[i])
+def assignation_parser(source: str, cursor: IntRef):
+    name = name_parser(source, cursor)
+    found_arrow = False
+    while cursor < len(source) - 1:
+        current = source[cursor.v]
+        next = source[cursor.v + 1]
+        if current == '<' and next == '-':
+            found_arrow = True
+            cursor.increment(2)
+            break
+        elif current != ' ' and current != '\t':
+            raise ValueError(parsing_error_str(cursor.v, 'left arrow (<-)', current))
+        cursor.increment()
+    
+    if not found_arrow:
+       raise ValueError(parsing_error_str(cursor.v, 'left arrow (<-)', 'end of file')) 
+    
+    return (name, tuple_parser(source, cursor))
+    
+def parse_dict(field_function, source: str, cursor: IntRef):
+    result = {}
+    state = 0
+    while cursor < len(source):
+        current = source[cursor.v]
+        match state:
+            case 0:
+                line = field_function(source, cursor)
+                result[line[0]] = line[1]
+                state = 1
+            case 1:
+                if current == ',':
+                    cursor.increment()
+                    skip_empty_lines(source, cursor)
+                    cursor.decrement()
+                    state = 0
+                elif current == '\n':
+                    break
+                elif current != ' ' and current != '\t':
+                    raise ValueError(parsing_error_str(cursor.v, 'line break or new line', current))
+        cursor.increment()
+        
+    return result
 
-    return (automaton, config)
+def subtype_parser(source: str, cursor: IntRef):
+    raise NotImplementedError
+
+def transition_parser(source: str, cursor: IntRef):
+    raise NotImplementedError
+
+def field_parser(source: str, cursor: IntRef):
+    skip_empty_lines(source, cursor)
+    
+    title = name_parser(source, cursor)
+    
+    while cursor < len(source):
+        current = source[cursor.v]
+        if current == ':':
+            cursor.increment(2)
+            break
+        elif current != ' ' and current != '\t':
+            raise ValueError(parsing_error_str(cursor.v, ':', current))
+        cursor.increment()
+    
+    data = {}
+    match title:
+        case "Colors":
+            data = parse_dict(assignation_parser,source, cursor)
+        case "States":
+            data = parse_dict(subtype_parser, source, cursor)
+        case "Transitions":
+            data = parse_dict(transition_parser, source, cursor)
+        case "Initialisation":
+            data = parse_dict(dummy_name_parser, source, cursor)
+    
+    return data
+
+print(field_parser('''
+    Colors:
+        Extremité <- (0,   0, 0),
+        Centre    <- (0, 255, 0)
+
+'''
+, IntRef(0)))
