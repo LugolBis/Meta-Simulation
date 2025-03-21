@@ -1,9 +1,3 @@
-// Cet automate élargis la bande sur ses deux extrémités
-// Toutes les transitions non préciséés sont de la forme:
-// (A, B, C) -> B
-// (Pratique pour rester succin)
-
-
 Colors:
     Extremité <- (0,   0, 0),
     Centre    <- (0, 255, 0)
@@ -14,11 +8,8 @@ States:
     Passé (Centre)
     
 Transitions:
-    // A gauche
     (Blank, Blank, BordGauche) -> BordGauche,
     (Blank, BordGauche, Passé) -> Passé,
-    
-    // A droite
     (BordDroit, Blank, Blank) -> BordDroit,
     (Passé, BordDroit, Blank) -> Passé
     

@@ -1,14 +1,12 @@
-
-from ast import Eq
-
-
 class IntRef:
     def __init__(self, value):
         self.value = value
         
-    @property
-    def v(self): return self.value
-    
+    def get_v(self): return self.value
+    def set_v(self, x: int): self.value = x
+
+    v = property(get_v, set_v)
+
     def increment(self, offset = 1):
         self.value += offset
     def decrement(self, offset = 1):
@@ -37,6 +35,16 @@ def skip_empty_lines(source: str, cursor: IntRef):
     while cursor < len(source) and source[cursor.v].isspace():
         cursor.increment()
 
+def skip_spaces_until(sentinel: str, source: str, cursor: IntRef):
+    while cursor < len(source):
+        current = source[cursor.v]
+        if current == sentinel:
+            break
+        elif current != ' ' and current != '\t':
+            raise ValueError(parsing_error_str(cursor.v, sentinel, current))
+        cursor.increment()
+ 
+
 def number_parser(source: str, cursor: IntRef) -> int:
     '''
         Returns parsed integer contained in any `str`.
@@ -54,7 +62,7 @@ def number_parser(source: str, cursor: IntRef) -> int:
         cursor.increment()
     
     if parsed == "":
-        raise ValueError(f'No number at cursor {cursor}.')
+        raise ValueError(parsing_error_str(cursor.v, 'number', source[cursor.v]))
     return int(parsed)
     
 
@@ -78,7 +86,15 @@ def tuple_parser(source: str, cursor: IntRef):
                         raise ValueError(parsing_error_str(cursor.v, '(', current))
                 case 1:
                     # Value parsing
-                    parsed.append(number_parser(source, cursor)) # type: ignore
+                    to_append = None
+                    base_cursor = cursor.v
+                    try:
+                        to_append = number_parser(source, cursor) # type: ignore
+                    except:
+                        cursor.v = base_cursor
+                        to_append = name_parser(source, cursor)
+
+                    parsed.append(to_append)
                     cursor.decrement()
                     state = 2
                 case 2:
@@ -117,7 +133,9 @@ def name_parser(source: str, cursor: IntRef):
     return parsed
 
 def dummy_name_parser(source: str, cursor: IntRef):
-    return (name_parser(source, cursor), None)
+    n = name_parser(source, cursor)
+    cursor.decrement()
+    return n
 
 def assignation_parser(source: str, cursor: IntRef):
     name = name_parser(source, cursor)
@@ -138,15 +156,20 @@ def assignation_parser(source: str, cursor: IntRef):
     
     return (name, tuple_parser(source, cursor))
     
-def parse_dict(field_function, source: str, cursor: IntRef):
+def parse_dict(field_function, source: str, cursor: IntRef, in_fact_list = False):
     result = {}
+    if in_fact_list:
+        result = []
     state = 0
     while cursor < len(source):
         current = source[cursor.v]
         match state:
             case 0:
                 line = field_function(source, cursor)
-                result[line[0]] = line[1]
+                if in_fact_list:
+                    result.append(line)
+                else:
+                    result[line[0]] = line[1]
                 state = 1
             case 1:
                 if current == ',':
@@ -162,11 +185,35 @@ def parse_dict(field_function, source: str, cursor: IntRef):
         
     return result
 
+
 def subtype_parser(source: str, cursor: IntRef):
-    raise NotImplementedError
+    name = name_parser(source, cursor)
+    
+    skip_spaces_until('(', source, cursor)
+    # Cursor on '('
+    cursor.increment()
+    subtype = name_parser(source, cursor)
+    skip_spaces_until(')', source, cursor)
+
+    return (name, subtype) 
+
 
 def transition_parser(source: str, cursor: IntRef):
-    raise NotImplementedError
+    left = tuple_parser(source, cursor)
+    cursor.increment()
+
+    skip_spaces_until('-', source, cursor)
+    cursor.increment()
+    
+    if source[cursor.v] != '>':
+        raise ValueError(parsing_error_str(cursor.v, '>', source[cursor.v]))
+    cursor.increment()
+
+    right = name_parser(source, cursor)
+    cursor.decrement()
+
+    return (left, right)
+
 
 def field_parser(source: str, cursor: IntRef):
     skip_empty_lines(source, cursor)
@@ -191,14 +238,23 @@ def field_parser(source: str, cursor: IntRef):
         case "Transitions":
             data = parse_dict(transition_parser, source, cursor)
         case "Initialisation":
-            data = parse_dict(dummy_name_parser, source, cursor)
+            data = parse_dict(dummy_name_parser, source, cursor, True)
     
+    return (title, data)
+
+def cellular_parser(source: str):
+    cursor = IntRef(0)
+    data = {}
+    while cursor < len(source):
+        field = field_parser(source, cursor)
+        print(f"{field[0]} parsed !")
+        data[field[0]] = field[1]
     return data
 
-print(field_parser('''
-    Colors:
-        Extremité <- (0,   0, 0),
-        Centre    <- (0, 255, 0)
+test_data = None
+with open('res/elargissement.cel') as stream:
+    test_data = stream.read()
 
-'''
-, IntRef(0)))
+print(cellular_parser(test_data))
+
+
