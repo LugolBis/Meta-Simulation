@@ -1,6 +1,6 @@
 import pygame
 import sys
-from cellular_parser import *
+from cellular_parser import cellular_parser
 from cellular_automata import *
 
 if __name__ == '__main__':
@@ -11,7 +11,9 @@ if __name__ == '__main__':
 
     parsed = None
     with open(sys.argv[1]) as stream:
-        parsed = parse(tokenize(stream.read()))
+        parsed = cellular_parser(stream.read())
+
+    raise NotImplementedError('Tout ce qui est après cette ligne est du code pour les anciens automates cellulaires.')
 
     a = parsed[0]
     c = parsed[1]

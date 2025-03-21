@@ -251,10 +251,3 @@ def cellular_parser(source: str):
         data[field[0]] = field[1]
     return data
 
-test_data = None
-with open('res/elargissement.cel') as stream:
-    test_data = stream.read()
-
-print(cellular_parser(test_data))
-
-
