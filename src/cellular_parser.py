@@ -1,3 +1,5 @@
+
+
 class IntRef:
     def __init__(self, value):
         self.value = value
@@ -72,7 +74,7 @@ def tuple_parser(source: str, cursor: IntRef):
         blank characters (except line break) ignored.
     '''
     state = 0
-    parsed = None
+    parsed: list = None # type: ignore
     while cursor < len(source):
         current = source[cursor.v]
         if current != ' ' and current != '\t':

@@ -1,3 +1,6 @@
+from cellular_parser import cellular_parser
+
+
 def assert_type(val, t):
     '''
         Checks if `val` is of type `t` and throws a (catchable) `ValueError` if not.
@@ -8,18 +11,18 @@ def assert_type(val, t):
 
 class State:
     '''
-        Simple C style enumeration for code readability.
+        Represents a cell's state.  
     '''
-    Dead  = False
-    Alive = True
-
+    def __init__(self, name: str, color: tuple):
+        self.name = name
+        self.color = color
+    
 class Cell:
     '''
         Glorified 2-uplet (current: State, next: State)
     '''
     def __init__(self, state):
-        assert_type(state, bool)
-
+        assert_type(state, str)
         self._current_state = state
         self._next_state = None
 
@@ -34,14 +37,14 @@ class Cell:
         return self._current_state
 
     def set_next_state(self, state):
-        assert_type(state, bool)
+        assert_type(state, str)
 
         self._next_state = state
 
 
 class Direction:
     '''
-        Another C style enumeration.
+        A C style enumeration.
         TODO: Change to `bool` values and check if
               it doesn't break anything (it will)
     '''
@@ -94,31 +97,32 @@ class Config:
     '''
 
     def __init__(self, first):
-        assert_type(first, bool)
+        assert_type(first, str)
 
-        self.leftmost = LinkedListNode(None, None, Cell(first))
-        self.rightmost = self.leftmost
+        self.leftmost: LinkedListNode = LinkedListNode(None, None, Cell(first))
+        self.rightmost: LinkedListNode = self.leftmost
 
     def push_back(self, current_state, next_state = None):
         '''
             Pushes the right end in O(1).
         '''
-        assert_type(current_state, bool)
-        assert_type(next_state, bool)
+        assert_type(current_state, str)
+        assert_type(next_state, str)
 
         self.rightmost.set_towards(Direction.Right, LinkedListNode(self.rightmost, None, Cell(current_state)))
-        self.rightmost = self.rightmost.get_towards(Direction.Right)
+        self.rightmost = self.rightmost.get_towards(Direction.Right) # type: ignore
         self.rightmost.get_value().set_next_state(next_state)
 
+    
     def push_front(self, current_state, next_state = None):
         '''
             Pushes the left end in O(1)
         '''
-        assert_type(current_state, bool)
-        assert_type(next_state, bool)
+        assert_type(current_state, str)
+        assert_type(next_state, str)
 
         self.leftmost.set_towards(Direction.Left, LinkedListNode(None, self.leftmost, Cell(current_state)))
-        self.leftmost = self.leftmost.get_towards(Direction.Left)
+        self.leftmost = self.leftmost.get_towards(Direction.Left) # type: ignore
         self.leftmost.get_value().set_next_state(next_state)
 
     def __repr__(self):
@@ -128,89 +132,39 @@ class Config:
         current = self.leftmost
         to_return = "|"
         while current != None:
-            to_return += f" {int(current.get_value().get_current_state())} |"
+            to_return += f" {(current.get_value().get_current_state())} |"
             current = current.get_towards(Direction.Right)
 
         return to_return
 
+
+def check_missing_field_error(fields: dict, expected: list, source: str):
+    for e in expected:
+        if not e in fields.keys():
+            raise ValueError(f'Error in file "{source}" : Missing field "{e}".')
+
 class CellularAutomaton:
-    '''
-        Contains the rules to be applied as an 8 bit long array.
-        This ensures that the user defines each and every transition
-        and that their is one and only one transition per boolean 3-uplet.
-    '''
+    def __init__(self):
+        pass
 
-    def __init__(self, rules):
-        if len(rules) != 8:
-            raise ValueError('Expected 8 rules.')
-        else:
-            for r in rules:
-                assert_type(r, bool)
-            self._rules = rules
 
-    def encode_state_bits(left_bit, middle_bit, right_bit):
-        '''
-            Takes 3 booleans and transform them into an integer.
-        '''
-        assert_type(left_bit, bool)
-        assert_type(middle_bit, bool)
-        assert_type(right_bit, bool)
+def load_cellular_from_file(path: str):
+    parsed = {}
+    with open(path) as stream:
+        parsed = cellular_parser(stream.read())
+    print(parsed)
 
-        return (left_bit << 2) + (middle_bit << 1) + (right_bit << 0)
+    check_missing_field_error(parsed, ['Colors', 'States', 'Transitions', 'Initialisation'], path)
 
-    def step(self, config):
-        '''
-            Updates `config` with the set of rules `self._rules`
-        '''
+    config = Config(parsed['Initialisation'][0]);
+    for cell in parsed['Initialisation'][1:]:
+        config.push_back(cell)
 
-        assert_type(config, Config)
 
-        # Check if we should enlarge the tape by its left end
-        left_bit   = False
-        middle_bit = False
-        right_bit = config.leftmost.get_value().get_current_state()
+    return config
+ 
+   
 
-        code = CellularAutomaton.encode_state_bits(left_bit, middle_bit, right_bit)
-
-        if self._rules[code] == True:
-            config.push_front(State.Dead, State.Alive)
-
-        # Iterating over the whole list left to right and updating next states
-        current = config.leftmost
-        last = None
-        while current != None:
-            # (`next` seems no be a python keyword but this is how this variable should be named)
-            nex = current.get_towards(Direction.Right)
-
-            # Getting surroundings code
-            left_bit = last != None and last.get_value().get_current_state()
-            middle_bit = current.get_value().get_current_state()
-            right_bit = nex != None and nex.get_value().get_current_state()
-
-            code = CellularAutomaton.encode_state_bits(left_bit, middle_bit, right_bit)
-
-            current.get_value().set_next_state(self._rules[code])
-
-            # Moving forward
-            last = current
-            current = current.get_towards(Direction.Right)
-
-        # Check if we should enlarge the list by its right end
-        left_bit = last.get_value().get_current_state()
-        middle_bit = False
-        right_bit = False
-
-        code = CellularAutomaton.encode_state_bits(left_bit, middle_bit, right_bit)
-
-        if self._rules[code] == True:
-            config.push_back(State.Dead, State.Alive)
-        
-        # Iterating over the tape right to left and committing changes
-        current = config.rightmost
-        while current != None:
-            current.get_value().update()
-
-            # Moving backwards
-            config.leftmost = current
-            current = current.get_towards(Direction.Left)
-
+if __name__ == '__main__':
+    test = load_cellular_from_file('res/elargissement.cel')
+    print(test)

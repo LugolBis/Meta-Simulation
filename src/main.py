@@ -3,8 +3,10 @@ import sys
 from cellular_parser import cellular_parser
 from cellular_automata import *
 
+
 if __name__ == '__main__':
     # Little test
+    print("Hello, World!")
     if len(sys.argv) < 2:
         print("Error : Please provide path to cellular automaton file.")
         sys.exit(0)
