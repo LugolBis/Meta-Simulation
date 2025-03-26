@@ -21,7 +21,7 @@ class Cell:
     '''
         Glorified 2-uplet (current: State, next: State)
     '''
-    def __init__(self, state):
+    def __init__(self, state: str):
         assert_type(state, str)
         self._current_state = state
         self._next_state = None
@@ -137,17 +137,86 @@ class Config:
 
         return to_return
 
-
 def check_missing_field_error(fields: dict, expected: list, source: str):
     for e in expected:
         if not e in fields.keys():
             raise ValueError(f'Error in file "{source}" : Missing field "{e}".')
 
+class TreeNode:
+    def __init__(self, name: str):
+        self._name     = name 
+        self._children = []
+
+
+    def has_child(self, s: str):
+        return s in [c._name for c in self._children]
+
+    def add_child(self, n):
+        self._children.append(n)
+
+    def get_child(self, n):
+        for c in self._children:
+            if c._name == n:
+                return c
+        return None
+    
+class IndexTree:
+    def __init__(self, index: tuple, dimension: int):
+        self._index = index
+        self._root = TreeNode('root')
+        self._dimension = dimension
+
+    def check_index_valid(self, index: tuple):
+          
+        if self._dimension != len(index):
+            raise ValueError(f'Expected index of size {self._dimension}, found size {len(index)}.')
+        for i in index:
+            if not i in self._index:
+                raise ValueError(f'Index {i} is not in {self._index}.')
+
+    def set(self, index: tuple, value: str):
+        self.check_index_valid(index)
+
+        last = None
+        current = self._root
+        for v in index:
+            last = current
+            current = current.get_child(v) # type: ignore
+            if current == None:
+                current = TreeNode(v)
+                last.add_child(current)
+
+        current._children.clear()
+        current._children.append(TreeNode(value))
+            
+        
+    def get(self, index: tuple):
+        self.check_index_valid(index)
+
+        current: TreeNode = self._root
+        
+        for i in index:
+            current = current.get_child(i) # type: ignore
+            if current == None:
+                return None
+
+        return current._children[0]._name # type: ignore
+      
 class CellularAutomaton:
-    def __init__(self):
+    def __init__(self, states: tuple, subtypes: dict, colors: dict):
+        self._rules = IndexTree(states, 3)
+        self._colors = colors
+        self._subtypes = subtypes
+
+    def _apply_rules(self, left: Cell, center: Cell, right: Cell):
+        next_state = self._rules.get((left.get_current_state(), center.get_current_state(), right.get_current_state()))
+        if next_state != None:
+            center.set_next_state(next_state)
+        
+        
+    def step(self, config: Config):
         pass
-
-
+    
 def load_cellular_from_file(path: str):
     parsed = {}
     with open(path) as stream:
@@ -160,11 +229,18 @@ def load_cellular_from_file(path: str):
     for cell in parsed['Initialisation'][1:]:
         config.push_back(cell)
 
+    automaton = CellularAutomaton(tuple(list(parsed['States'].keys()) + ['Blank']), parsed['States'], parsed['Colors'])
 
-    return config
+    for transition in parsed['Transitions']:
+        automaton._rules.set(transition, parsed['Transitions'][transition])        
+
+    return (automaton, config)
  
    
 
 if __name__ == '__main__':
     test = load_cellular_from_file('res/elargissement.cel')
-    print(test)
+    cells = (Cell('Blank'), Cell('Blank'), Cell('BordGauche'))
+    test[0]._apply_rules(cells[0], cells[1], cells[2]);
+    cells[1].update()
+    print(cells[1].get_current_state())
