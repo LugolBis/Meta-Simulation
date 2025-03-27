@@ -101,6 +101,21 @@ class Config:
 
         self.leftmost: LinkedListNode = LinkedListNode(None, None, Cell(first))
         self.rightmost: LinkedListNode = self.leftmost
+        self.length: int = 1
+
+        
+    def push_front(self, current_state, next_state = None):
+        '''
+            Pushes the left end in O(1)
+        '''
+        assert_type(current_state, str)
+        assert_type(next_state, str)
+
+        self.leftmost.set_towards(Direction.Left, LinkedListNode(None, self.leftmost, Cell(current_state)))
+        self.leftmost = self.leftmost.get_towards(Direction.Left) # type: ignore
+        self.leftmost.get_value().set_next_state(next_state)
+
+        self.length += 1
 
     def push_back(self, current_state, next_state = None):
         '''
@@ -113,17 +128,19 @@ class Config:
         self.rightmost = self.rightmost.get_towards(Direction.Right) # type: ignore
         self.rightmost.get_value().set_next_state(next_state)
 
-    
-    def push_front(self, current_state, next_state = None):
-        '''
-            Pushes the left end in O(1)
-        '''
-        assert_type(current_state, str)
-        assert_type(next_state, str)
+        self.length += 1
 
-        self.leftmost.set_towards(Direction.Left, LinkedListNode(None, self.leftmost, Cell(current_state)))
-        self.leftmost = self.leftmost.get_towards(Direction.Left) # type: ignore
-        self.leftmost.get_value().set_next_state(next_state)
+    def pop_front(self):
+        self.leftmost = self.leftmost.get_towards(Direction.Right) # type: ignore
+        self.leftmost.set_towards(Direction.Left, None)
+
+        self.length -= 1
+
+    def pop_back(self):
+        self.rightmost = self.rightmost.get_towards(Direction.Left) # type: ignore
+        self.rightmost.set_towards(Direction.Right, None)
+
+        self.length -= 1
 
     def __repr__(self):
         '''
@@ -136,6 +153,9 @@ class Config:
             current = current.get_towards(Direction.Right)
 
         return to_return
+
+    def __len__(self):
+        return self.length
 
 def check_missing_field_error(fields: dict, expected: list, source: str):
     for e in expected:
@@ -212,11 +232,65 @@ class CellularAutomaton:
         next_state = self._rules.get((left.get_current_state(), center.get_current_state(), right.get_current_state()))
         if next_state != None:
             center.set_next_state(next_state)
+        else:
+            center.set_next_state(center.get_current_state())
+
+    def _extend_if_necessary(self, edge: tuple, direction: int, config: Config):
         
-        
+        self._apply_rules(edge[0], edge[1], edge[2]) # type: ignore
+        if edge[1]._next_state != 'Blank':
+            # Yes we should !
+            match direction:
+                case Direction.Left:
+                    config.push_front('Blank', edge[1]._next_state)
+                case Direction.Right:
+                    config.push_back('Blank', edge[1]._next_state)
+            
     def step(self, config: Config):
-        pass
-    
+        # Adding theoritical edge cells
+
+        config.push_front('Blank')
+        config.push_back('Blank')
+        
+        # Let's apply rules on all cells
+
+        current = config.leftmost
+        last_node: LinkedListNode = None # type: ignore
+        while current != None:
+
+            # Getting last and next state str
+            last = 'Blank'
+            if last_node != None:
+                # We are NOT at the leftmost cell
+                last = last_node.get_value().get_current_state()
+            next_node = current.get_towards(Direction.Right)
+            next = 'Blank'
+            if next_node != None:
+                # We are NOT at the rightmost cell
+                next = next_node.get_value().get_current_state()
+
+            # Applying
+            
+            # Inplace modification can only occur in `current`
+            self._apply_rules(Cell(last), current.get_value(), Cell(next))
+            # Onto the next node !
+
+            last_node = current
+            current = current.get_towards(Direction.Right)
+
+
+        # Updating the cells
+        current = config.leftmost
+        while current != None:
+            current.get_value().update()
+            current = current.get_towards(Direction.Right)
+
+        # Deleting edge cells if blank
+        if config.leftmost.get_value().get_current_state() == 'Blank':
+            config.pop_front()
+        if config.rightmost.get_value().get_current_state() == 'Blank':
+            config.pop_back()
+        
 def load_cellular_from_file(path: str):
     parsed = {}
     with open(path) as stream:
@@ -229,6 +303,8 @@ def load_cellular_from_file(path: str):
     for cell in parsed['Initialisation'][1:]:
         config.push_back(cell)
 
+    parsed['Colors']['Blank'] = (255, 255, 255)
+
     automaton = CellularAutomaton(tuple(list(parsed['States'].keys()) + ['Blank']), parsed['States'], parsed['Colors'])
 
     for transition in parsed['Transitions']:
@@ -238,9 +314,45 @@ def load_cellular_from_file(path: str):
  
    
 
+import pygame
+
 if __name__ == '__main__':
-    test = load_cellular_from_file('res/elargissement.cel')
-    cells = (Cell('Blank'), Cell('Blank'), Cell('BordGauche'))
-    test[0]._apply_rules(cells[0], cells[1], cells[2]);
-    cells[1].update()
-    print(cells[1].get_current_state())
+    (automaton, config) = load_cellular_from_file('res/elargissement.cel')    
+
+    pygame.init()
+    screen = pygame.display.set_mode((800, 600))
+    font = pygame.font.SysFont('Arial', 25)
+    clock = pygame.time.Clock()
+    running = True
+    compteur = 0
+    result = ""
+
+    while running or result!="":
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                result=""
+
+        screen.fill("white")
+
+        current = config.leftmost
+        i = 0
+        while current != None:
+            
+            # Drawing a cell
+            pygame.draw.rect(
+                screen,
+                automaton._colors[automaton._subtypes[current.get_value().get_current_state()]],
+                (400 + (i - len(config)/2) * 10, 300, 10, 10)
+            )
+            
+            current = current.get_towards(Direction.Right)
+            i += 1
+        
+        pygame.display.flip()
+
+        clock.tick(60)
+        compteur = (compteur + 1)%25
+        if compteur == 0:
+            automaton.step(config)
