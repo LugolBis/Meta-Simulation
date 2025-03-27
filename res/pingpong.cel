@@ -1,0 +1,29 @@
+Colors:
+	Paddle <- (0, 0, 0),
+	Table <- (0, 0, 255),
+	Ball <- (255, 0, 0)
+
+States:
+	Left (Paddle),
+	Right (Paddle),
+	BallFromLeft (Ball),
+	BallFromRight (Ball),
+	Table (Table)
+
+Transitions:
+	(Table, Table, BallFromRight) -> BallFromRight,
+	(BallFromLeft, Table, Table) -> BallFromLeft,
+	
+	(Left, BallFromRight, Table) -> BallFromLeft,
+	(Table, BallFromLeft, Right) -> BallFromRight,
+
+	(Table, BallFromRight, Table) -> Table,
+	(Table, BallFromLeft, Table) -> Table,
+	(Left, BallFromLeft, Table) -> Table,
+	(Table, BallFromRight, Right) -> Table,
+	
+	(Left, Table, BallFromRight) -> BallFromRight,
+	(BallFromLeft, Table, Right) -> BallFromLeft 
+
+Initialisation:
+	Left, Table, Table, Table, BallFromRight, Table, Table, Table, Right

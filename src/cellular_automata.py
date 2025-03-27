@@ -317,7 +317,7 @@ def load_cellular_from_file(path: str):
 import pygame
 
 if __name__ == '__main__':
-    (automaton, config) = load_cellular_from_file('res/elargissement.cel')    
+    (automaton, config) = load_cellular_from_file('res/pingpong.cel')    
 
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
