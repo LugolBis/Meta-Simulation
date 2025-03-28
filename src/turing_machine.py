@@ -1,4 +1,5 @@
 import pygame
+import os
 
 class Symbol:
 
@@ -277,7 +278,7 @@ class TuringMachine:
     step = property(lambda x: x._step,set_step)
 
 if __name__ == '__main__':
-    TM:TuringMachine = TuringMachine.from_script("/home/lugolbis/Bureau/UVSQ/L3_Info/S6/IN620/IN620/res/test.txt")
+    TM:TuringMachine = TuringMachine.from_script("res/test.txt")
 
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
@@ -329,9 +330,3 @@ if __name__ == '__main__':
             if TM.configuration.update()== False:
                 running = False
                 result = f'ACCEPT : {TM.check_final()}'
-
-    """
-    mt.run()
-    print("\n\n")
-    print(mt)
-    """
