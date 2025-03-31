@@ -1,4 +1,5 @@
 import sys
+import random
 
 def translate_turing_machine(script_path:str, save_path:str):
     BUFFER = {} # key : StateName_READ, value : a tuple that contains the FUTUR_STATE, WRITE, MOVEMENT values
@@ -66,8 +67,14 @@ def translate_turing_machine(script_path:str, save_path:str):
 
     # Store the Colors of each state
     COLORS = set() 
+    generated = []
     for index, value in enumerate(CA_ALPHABET):
-        R,G,B = generate_color(index)
+
+        R, G, B = (0, 0, 0)
+        while (R, G, B) in generated and len(generated) < 255:
+            R,G,B = generate_color(random.randint(-128, 127)) # 8 bit argument
+
+        generated.append((R, G, B))
         COLORS.add((value,R,G,B))
     
     with open(save_path,"w")  as fd:
@@ -99,9 +106,31 @@ def translate_turing_machine(script_path:str, save_path:str):
     
 
 def generate_color(n:int) -> tuple[int,int,int]:
-    n1 = (768-n)%768
-    n2 = (n1//256)%256
-    return (n2,n2,n1%256)
+    '''
+        Expects an 8-bit n.
+    '''
+
+    transpositions = [
+        [0, 1, 2, 3, 4, 5, 6, 7],
+        [7, 6, 5, 4, 3, 2, 1, 0],
+        [4, 3, 2, 1, 0, 7, 6, 5]
+    ]
+
+    # Apply transpositions
+    result = []
+    for trans in transpositions:
+        composante = 0
+        old_index = 0
+        for new_index in trans:
+            composante = composante | (nth_bit(n, old_index) << new_index)
+            old_index += 1
+        result.append(composante)
+
+    return tuple(result)
+
+def nth_bit(x: int, n: int) -> int:
+    return (x >> n)%2
+
 
 translate_turing_machine("res/to_translate.tur","res/translated.cel")
 

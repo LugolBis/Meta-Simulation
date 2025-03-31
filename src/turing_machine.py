@@ -278,7 +278,7 @@ class TuringMachine:
     step = property(lambda x: x._step,set_step)
 
 if __name__ == '__main__':
-    TM:TuringMachine = TuringMachine.from_script("res/test.txt")
+    TM:TuringMachine = TuringMachine.from_script("res/to_translate.tur")
 
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
