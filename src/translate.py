@@ -76,19 +76,23 @@ def translate_turing_machine(script_path:str, save_path:str):
         CONTENT += "Colors:\n"
         for color in COLORS:
             CONTENT += f"   Color{color[0]} <- {color[1],color[2],color[3]},\n"
+        CONTENT = CONTENT[:-2] + '\n' # Deleting last comma
 
         CONTENT += "\nStates:\n"
         for state in CA_ALPHABET:
             CONTENT += f"   {state}(Color{state}),\n"
-        
+        CONTENT = CONTENT[:-2] + '\n' # Deleting last comma
+
         CONTENT += "\nTransitions:\n"
         for cells, new_cell in TRANSITIONS.items():
             cell_left, cell_middle, cell_right = cells
             CONTENT += f"   ({cell_left}, {cell_middle}, {cell_right}) -> {new_cell},\n"
+        CONTENT = CONTENT[:-2] + '\n' # Deleting last comma
 
         CONTENT += f"\nInitialisation:\n   *_, *_, {init_state}{input_word[0]},"
         for word in input_word[1:]:
             CONTENT += f" *{word},"
+        CONTENT = CONTENT[:-1] + '\n' # Deleting last comma
 
         fd.write(CONTENT)
     print("Successfully translate The Turing Machine into a Cellular Automaton.")
@@ -99,4 +103,5 @@ def generate_color(n:int) -> tuple[int,int,int]:
     n2 = (n1//256)%256
     return (n2,n2,n1%256)
 
-translate_turing_machine("res/test.txt","res/example.txt")
+translate_turing_machine("res/to_translate.tur","res/translated.cel")
+

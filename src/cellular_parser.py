@@ -127,7 +127,8 @@ def name_parser(source: str, cursor: IntRef):
                 elif current != ' ' and current != '\t':
                     raise ValueError(parsing_error_str(cursor.v, 'letter, "*" or "_"', current))
             case 1:
-                if current.isalpha() or current == '*' or current == '_':
+                # During name
+                if current.isalnum() or current == '*' or current == '_':
                     parsed += current
                 else:
                     break
