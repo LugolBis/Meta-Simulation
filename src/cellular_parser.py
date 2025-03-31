@@ -121,13 +121,13 @@ def name_parser(source: str, cursor: IntRef):
         match state:
             case 0:
                 # Before name
-                if current.isalpha():
+                if current.isalpha() or current == '*' or current == '_':
                     parsed += current
                     state = 1
                 elif current != ' ' and current != '\t':
-                    raise ValueError(parsing_error_str(cursor.v, 'letter', current))
+                    raise ValueError(parsing_error_str(cursor.v, 'letter, "*" or "_"', current))
             case 1:
-                if current.isalpha():
+                if current.isalpha() or current == '*' or current == '_':
                     parsed += current
                 else:
                     break

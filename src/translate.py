@@ -99,4 +99,4 @@ def generate_color(n:int) -> tuple[int,int,int]:
     n2 = (n1//256)%256
     return (n2,n2,n1%256)
 
-translate_turing_machine("/home/lugolbis/Bureau/UVSQ/L3_Info/S6/IN620/IN620/res/test.txt","/home/lugolbis/Bureau/UVSQ/L3_Info/S6/IN620/IN620/res/example.txt")
+translate_turing_machine("res/test.txt","res/example.txt")

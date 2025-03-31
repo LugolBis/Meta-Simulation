@@ -17,6 +17,7 @@ clean:
 	-@rm $(TEX_DIR)/rapport.aux
 	-@rm rapport.pdf
 	-@rm -r $(VENV)
+	-@rm res/example.txt
 
 rapport.pdf: $(TEX_DIR)/rapport.tex
 	@echo "Compilation du fichier latex..."
