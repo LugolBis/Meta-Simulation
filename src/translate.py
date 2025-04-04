@@ -23,13 +23,21 @@ def translate_turing_machine(script_path:str, save_path:str):
                     raise error
 
     # Store the alphabet of the CellularAutomaton -> {TM_Transitions U {*}} x TM_Alphabet
-    CA_ALPHABET = set() 
-    for state in BUFFER.keys():
-        for letter in TM_ALPHABET:
-            CA_ALPHABET.add(f"{state}")
-            CA_ALPHABET.add(f"*{letter}")
+    CA_ALPHABET = set()
 
-    print(CA_ALPHABET)
+    # Generate the CA alphabet based on the finals states and the TM alphabet
+    for state in finals:
+        for letter in TM_ALPHABET:
+            CA_ALPHABET.add(f"{state}{letter}")
+            CA_ALPHABET.add(f"{init_state}{letter}")
+
+    # Adding already formatted states stored in the BUFFER
+    for state in BUFFER.keys():
+        CA_ALPHABET.add(state)
+
+    # Adding empty state for each letter in the TM alphabet
+    for letter in TM_ALPHABET:
+        CA_ALPHABET.add(f"*{letter}")
 
     # TRANSITIONS store the transitions of the CellularAutomaton in this format : key : (CELL_Left, cell_middle, CELL_Right), value: New_CELL
     TRANSITIONS = dict()
@@ -57,13 +65,6 @@ def translate_turing_machine(script_path:str, save_path:str):
                         TRANSITIONS[(cell_left,current_cell,state)] = f"{futur_state}{current_cell[1:]}"
             case default:
                 print(f"Inconsistent symbol for movement : '{move}'")
-    
-    # Complete with the transitions where anything change
-    for cell_left in CA_ALPHABET:
-        for cell_middle in CA_ALPHABET:
-            for cell_right in CA_ALPHABET:
-                if (cell_left, cell_middle, cell_right) not in TRANSITIONS.keys():
-                    TRANSITIONS[(cell_left, cell_middle, cell_right)] = cell_middle
 
     # Store the Colors of each state
     COLORS = set() 
@@ -99,7 +100,7 @@ def translate_turing_machine(script_path:str, save_path:str):
         CONTENT += f"\nInitialisation:\n   *_, *_, {init_state}{input_word[0]},"
         for word in input_word[1:]:
             CONTENT += f" *{word},"
-        CONTENT = CONTENT[:-1] + '\n' # Deleting last comma
+        CONTENT += f' *_, *_\n'
 
         fd.write(CONTENT)
     print("Successfully translate The Turing Machine into a Cellular Automaton.")

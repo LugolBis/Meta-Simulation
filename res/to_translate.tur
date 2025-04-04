@@ -1,5 +1,8 @@
+// Commentaire
 start
+/// Ceci est aussi un commentaire
 accept
+// Ceci est le mot d'entrée
 0,1,1
         
 start,_,reject,_,-

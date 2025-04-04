@@ -1,3 +1,4 @@
+from io import TextIOWrapper
 import pygame
 import os
 
@@ -204,25 +205,25 @@ class Configuration:
 
 class TuringMachine:
 
-    def __init__(self, configuration:Configuration, states:set[State]):
+    def __init__(self, configuration:Configuration):
         self._configuration = configuration
-        self._states = states
         self._step = 0
 
     def from_script(path:str) -> 'TuringMachine':
         BUFFER = {} # key : state name, value : (State, []) the list contains the names of the futurs_states
         with open (path,"r") as fs:
-            init_state = fs.readline().strip()
+            init_state = parser_tm_script(fs)
 
-            finals = fs.readline().strip().split(",")
+            finals = parser_tm_script(fs).split(",")
+
             for final_state in finals:
                 BUFFER[final_state] = (State([],True),[])
             
-            tape = Tape.from_liste(fs.readline().strip().split(","))
+            tape = Tape.from_liste(parser_tm_script(fs).split(","))
 
             for line in fs:
                 line = line.strip()
-                if line != "":
+                if line != "" and not line.startswith("//"):
                     try:
                         current_state, read, futur_state, write, move = line.strip().split(",")
                         if current_state in BUFFER.keys():
@@ -240,15 +241,11 @@ class TuringMachine:
                     new_transitions[index].set_futur_state(BUFFER[futur_state][0])
             BUFFER[key][0].set_transitions(new_transitions)
             
-        return TuringMachine(Configuration(tape,BUFFER[init_state][0]),set())
+        return TuringMachine(Configuration(tape,BUFFER[init_state][0]))
 
     def set_configuration(self, new_configuration:Configuration):
         assert isinstance(new_configuration,Configuration), "ERROR : The 'TuringMachine' property 'configuration' need to be a 'Configuration' object."
         self._configuration = new_configuration
-
-    def set_states(self, new_states:set[State]):
-        assert isinstance(new_states,set[State]), "ERROR : The 'TuringMachine' property 'configuration' need to be a 'Dict[int, State]' object."
-        self._states = new_states
 
     def set_step(self, new_step:int):
         assert isinstance(new_step,int), "ERROR : The 'TuringMachine' property 'step' need to be an 'int' object."
@@ -261,6 +258,7 @@ class TuringMachine:
         active = True
         while active:
             active = self._configuration.update()
+            self._step += 1
         return self.check_final()
 
     def run_with_limit(self,limit:int) -> bool:
@@ -272,61 +270,83 @@ class TuringMachine:
 
     def __repr__(self):
         return f"TuringMachine -- at step : {self._step}\n{self._configuration}"
+    
+    def display(self):
+        pygame.init()
+        screen = pygame.display.set_mode((800, 600))
+        font = pygame.font.SysFont('Arial', 25)
+        clock = pygame.time.Clock()
+        running = True
+        compteur = 0
+        result = ""
+
+        while running or result!="":
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    result=""
+
+            screen.fill("white")
+
+            pygame.draw.rect(screen, (217,167,161), (385, 295, 25, 25))
+            screen.blit(font.render(f"{self.configuration.tape.symbol}", True, (0,0,0)), dest=(390, 295, 20, 20))
+            if result!="":
+                screen.blit(font.render(f"{result}", True, (0,0,0)), dest=(350, 345, 60, 60))
+            
+            i=1
+            left = self.configuration.tape.left
+            right = self.configuration.tape.right
+
+            while left!=None or right!=None:
+                left_coord = 385 - 25 * i
+                right_coord = 385 + 25 * i
+
+                if isinstance(left,Tape):
+                    pygame.draw.rect(screen, (0,167,161), (left_coord, 295, 25, 25))
+                    screen.blit(font.render(f"{left.symbol}", True, (0,0,0)), dest=(left_coord, 295, 20, 20))
+                    left = left.left
+
+                if isinstance(right,Tape):
+                    pygame.draw.rect(screen, (0,167,161), (right_coord, 295, 25, 25))
+                    screen.blit(font.render(f"{right.symbol}", True, (0,0,0)), dest=(right_coord, 295, 20, 20))
+                    right = right.right
+
+                i+=1
+
+            pygame.display.flip()
+
+            clock.tick(60)
+            compteur = (compteur + 1)%25
+            if compteur == 0:
+                if self.configuration.update() == False:
+                    running = False
+                    if self.check_final():
+                        result = f'ACCEPT - Steps : {self.step}'
+                    else:
+                        result =  f'REJECT - Steps : {self.step}'
+                else:
+                    self._step += 1
 
     configuration = property(lambda x: x._configuration,set_configuration)
-    states = property(lambda x: x._states,set_states)
     step = property(lambda x: x._step,set_step)
+
+def question_11(tm: TuringMachine, configuration: Configuration, limit: int):
+    tm.set_configuration(configuration)
+    tm.run_with_limit(limit)
+    tm.display()
+
+def question_12(tm: TuringMachine, word: str):
+    tm.configuration.set_tape(Tape.from_liste([char for char in word]))
+    tm.run()
+    tm.display()
+
+def parser_tm_script(source: TextIOWrapper):
+    line = source.readline().strip()
+    while line=="" or line.startswith("//"):
+        line = source.readline().strip()
+    return line
 
 if __name__ == '__main__':
     TM:TuringMachine = TuringMachine.from_script("res/to_translate.tur")
-
-    pygame.init()
-    screen = pygame.display.set_mode((800, 600))
-    font = pygame.font.SysFont('Arial', 25)
-    clock = pygame.time.Clock()
-    running = True
-    compteur = 0
-    result = ""
-
-    while running or result!="":
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-                result=""
-
-        screen.fill("white")
-
-        pygame.draw.rect(screen, (217,167,161), (385, 295, 25, 25))
-        screen.blit(font.render(f"{TM.configuration.tape.symbol}", True, (0,0,0)), dest=(390, 295, 20, 20))
-        if result!="":
-            screen.blit(font.render(f"Result : {result}", True, (0,0,0)), dest=(440, 345, 60, 60))
-        
-        i=1
-        left = TM.configuration.tape.left
-        right = TM.configuration.tape.right
-
-        while left!=None or right!=None:
-            left_coord = 385 - 25 * i
-            right_coord = 385 + 25 * i
-
-            if isinstance(left,Tape):
-                pygame.draw.rect(screen, (0,167,161), (left_coord, 295, 25, 25))
-                screen.blit(font.render(f"{left.symbol}", True, (0,0,0)), dest=(left_coord, 295, 20, 20))
-                left = left.left
-
-            if isinstance(right,Tape):
-                pygame.draw.rect(screen, (0,167,161), (right_coord, 295, 25, 25))
-                screen.blit(font.render(f"{right.symbol}", True, (0,0,0)), dest=(right_coord, 295, 20, 20))
-                right = right.right
-
-            i+=1
-
-        pygame.display.flip()
-
-        clock.tick(60)
-        compteur = (compteur + 1)%25
-        if compteur == 0:
-            if TM.configuration.update()== False:
-                running = False
-                result = f'ACCEPT : {TM.check_final()}'
+    TM.display()
