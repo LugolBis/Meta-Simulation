@@ -24,6 +24,28 @@
   O(1). De plus, tout indexage de la bande se fait au cours d'une itération complète, ainsi
   le problème de la complexité O(n) pour accéder à un élément précis ne se pose pas.
 
+  \section{Question 14}
+      Soit le problème HALTING-CELLULAR-AUTOMATON : étant donné < A > le code
+  d’un automate cellulaire, s ∈ S et un mot w appartenant à S * , décider si A sur l’entrée w va avoir une configuration
+  contenant s lors de son calcul.
 
+  Au travers de la question 13 nous avons démontrer (et implémenter) une solution permettant de traduire un 
+  automate cellulaire en une machine de turing.
+  Nous admettons donc que nous pouvons aisément passer d'un automate cellulaire à une machine de turing.
+
+  Démonstration par l'absurde
+  Supposons que Lhca le language reconnaissant HALTING-CELLULAR-AUTOMATON est décidable tel que il existe 
+  une machine de turing HCA qui décide Lhca.
+  On définit H une machine de turing qui décide HALT :
+  - Entrée : (<M>, w)
+  - Si HCA accepte (<M>,w) alors ACCEPT
+    Sinon ACCEPT
+
+  . Si (<M>, w) appartient à HALT alors HCA s'arrête sur w. On a HCA qui calcule si une configuration donnée 
+  appartient aux configurations obtenues lors du calcul sur le mot w.
+  . Si (<M>,w) n'appartient pas à HALT alors HCA ne s'arrête pas sur w. Or HCA est décidable donc finit 
+  nécessairement par s'arrêter et ACCEPT/REJECT, donc HALT accepte l'entrée (<M>, w).
+
+  Donc HALT décidable : contradiction, HALTING-CELLULAR-AUTOMATON est indécidable.
   
 \end{document}

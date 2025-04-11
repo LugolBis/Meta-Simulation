@@ -27,15 +27,15 @@ The script format is the following :
 <br>
 <**Transitions**>
 
-> ![IMPORTANT]
+> [!IMPORTANT]
 > The separator choosed is a comma.<br>
 > For example you coul have for <**Finals state**> :
 > ```
 > final_state0,final_state1,final_state2
 > ```
 
-> ![NOTE]
-> You could put empty line or commented lines everywhere. To declare a comment line use : ```//```
+> [!NOTE]
+> You can put empty line or commented lines everywhere. To declare a comment line use : ```//```
 
 ## Requirements :
 - Python >= 3.10.x
