@@ -9,7 +9,7 @@ $(VENV)/pygame_installed: $(VENV)
 	@$(PYTHON) -m pip install pygame
 	@touch $(VENV)/pygame_installed
 
-config:
+$(VENV):
 	@python3 -m venv $(VENV)
 
 tm:
@@ -31,7 +31,6 @@ clean:
 	-@rm $(TEX_DIR)/rapport.aux
 	-@rm rapport.pdf
 	-@rm -r $(VENV)
-	-@rm res/example.txt
 
 rapport.pdf: $(TEX_DIR)/rapport.tex
 	@echo "Compilation du fichier latex..."

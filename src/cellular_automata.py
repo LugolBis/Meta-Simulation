@@ -1,6 +1,8 @@
 from cellular_parser import cellular_parser
 import sys
 
+from utils import letter_from_color
+
 def assert_type(val, t):
     '''
         Checks if `val` is of type `t` and throws a (catchable) `ValueError` if not.
@@ -323,7 +325,7 @@ if __name__ == '__main__':
 
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
-    font = pygame.font.SysFont('Arial', 25)
+    font = pygame.font.SysFont('Arial', 16)
     clock = pygame.time.Clock()
     running = True
     compteur = 0
@@ -343,11 +345,26 @@ if __name__ == '__main__':
         while current != None:
             
             # Drawing a cell
-            pygame.draw.rect(
-                screen,
-                automaton._colors[automaton._subtypes[current.get_value().get_current_state()]],
-                (400 + (i - len(config)/2) * 10, 300, 10, 10)
-            )
+            try:
+                # Tries to draw as letter
+                letter = letter_from_color(automaton._colors[automaton._subtypes[current.get_value().get_current_state()]])
+                pygame.draw.rect(
+                    screen,
+                    "black",
+                    (400 + (i - len(config)/2) * 20, 300, 20, 20),
+                    1
+                )
+                screen.blit(
+                    font.render(letter, True, (0, 0, 0)),
+                    dest = (405 + (i - len(config)/2) * 20, 300, 0, 0)
+                )
+            except:
+                # Not a letter matchin magic value state
+                pygame.draw.rect(
+                    screen,
+                    automaton._colors[automaton._subtypes[current.get_value().get_current_state()]],
+                    (400 + (i - len(config)/2) * 20, 300, 20, 20)
+                )
             
             current = current.get_towards(Direction.Right)
             i += 1

@@ -1,6 +1,7 @@
 import sys
 import random
 from turing_machine import parser_tm_script
+from utils import letter_from_color, color_from_letter
 
 def translate_turing_machine(script_path:str, save_path:str):
     BUFFER = {} # key : StateName_READ, value : a tuple that contains the FUTUR_STATE, WRITE, MOVEMENT values
@@ -74,12 +75,9 @@ def translate_turing_machine(script_path:str, save_path:str):
     generated = []
     for index, value in enumerate(CA_ALPHABET):
 
-        R, G, B = (0, 0, 0)
-        while (R, G, B) in generated and len(generated) < 255:
-            R,G,B = generate_color(random.randint(-128, 127)) # 8 bit argument
+        r, g, b = color_from_letter(value[-1])
 
-        generated.append((R, G, B))
-        COLORS.add((value,R,G,B))
+        COLORS.add((value, r, g, b))
     
     with open(save_path,"w")  as fd:
         CONTENT = ""
@@ -135,7 +133,9 @@ def generate_color(n:int) -> tuple[int,int,int]:
 def nth_bit(x: int, n: int) -> int:
     return (x >> n)%2
 
+
 if __name__ == "__main__":
+
     args = sys.argv[1:]
     if len(args)>0:
         translate_turing_machine(args[0],"res/translated.cel")
