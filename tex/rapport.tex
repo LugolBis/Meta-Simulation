@@ -38,13 +38,17 @@
   une machine de turing HCA qui décide Lhca.
   On définit H une machine de turing qui décide HALT :
   - Entrée : (<M>, w)
-  - Si HCA accepte (<M>,w) alors ACCEPT
-    Sinon ACCEPT
+  - On construit M' à partir de M :
+    - On efface sa bande
+    - On écrit w
+    - Si M s'arrête sur w alors ACCEPT
+
+  Si HCA accepte (<M'>,w,w) alors ACCEPT
+    Sinon REJECT
 
   . Si (<M>, w) appartient à HALT alors HCA s'arrête sur w. On a HCA qui calcule si une configuration donnée 
   appartient aux configurations obtenues lors du calcul sur le mot w.
-  . Si (<M>,w) n'appartient pas à HALT alors HCA ne s'arrête pas sur w. Or HCA est décidable donc finit 
-  nécessairement par s'arrêter et ACCEPT/REJECT, donc HALT accepte l'entrée (<M>, w).
+  . Si (<M>,w) n'appartient pas à HALT, cela signifie que par contsruction de M' on a (<M>,w,w) qui n'appartient pas à HCA, car <M> ne s'arrête pas sur w.
 
   Donc HALT décidable : contradiction, HALTING-CELLULAR-AUTOMATON est indécidable.
   

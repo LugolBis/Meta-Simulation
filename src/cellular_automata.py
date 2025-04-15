@@ -1,5 +1,5 @@
 from cellular_parser import cellular_parser
-
+import sys
 
 def assert_type(val, t):
     '''
@@ -317,7 +317,11 @@ def load_cellular_from_file(path: str):
 import pygame
 
 if __name__ == '__main__':
-    (automaton, config) = load_cellular_from_file('res/translated.cel')    
+    args = sys.argv[1:]
+    if len(args)>0:
+        (automaton, config) = load_cellular_from_file(args[0])
+    else:
+        (automaton, config) = load_cellular_from_file('res/elargissement.cel')    
 
     pygame.init()
     screen = pygame.display.set_mode((800, 600))

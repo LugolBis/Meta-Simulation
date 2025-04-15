@@ -1,25 +1,28 @@
 import sys
 import random
+from turing_machine import parser_tm_script
 
 def translate_turing_machine(script_path:str, save_path:str):
     BUFFER = {} # key : StateName_READ, value : a tuple that contains the FUTUR_STATE, WRITE, MOVEMENT values
     TM_ALPHABET = set() # Store the symbols used by the Cellular Automaton
     with open (script_path,"r") as fs:
-        init_state = fs.readline().strip()
-        finals = fs.readline().strip().split(",") # Unused finals state
-        input_word = fs.readline().strip().split(",")
+        init_state = parser_tm_script(fs)
+        finals = parser_tm_script(fs).split(",") # Unused finals state
+        input_word = parser_tm_script(fs).split(",")
 
         for line in fs:
             line = line.strip()
-            if line != "":
+            if line != "" and not line.startswith("//"):
                 try:
                     current_state, read, futur_state, write, move = line.strip().split(",")
                     TM_ALPHABET.add(read) ; TM_ALPHABET.add(write)
-                    if current_state in BUFFER.keys():
-                        BUFFER[f"{current_state}{read}"] = (futur_state,write,move)
-                    else:
-                        BUFFER[f"{current_state}{read}"] = (futur_state,write,move)
+                    BUFFER[f"{current_state}{read}"] = (futur_state,write,move)
+
+                    reject = f"{futur_state}{read}"
+                    if reject not in BUFFER.keys():
+                        BUFFER[reject] = (reject,"","-")
                 except Exception as error:
+                    print(f"Error line :\n'{line}'\n")
                     raise error
 
     # Store the alphabet of the CellularAutomaton -> {TM_Transitions U {*}} x TM_Alphabet
@@ -132,6 +135,9 @@ def generate_color(n:int) -> tuple[int,int,int]:
 def nth_bit(x: int, n: int) -> int:
     return (x >> n)%2
 
-
-translate_turing_machine("res/to_translate.tur","res/translated.cel")
-
+if __name__ == "__main__":
+    args = sys.argv[1:]
+    if len(args)>0:
+        translate_turing_machine(args[0],"res/translated.cel")
+    else:
+        translate_turing_machine("res/binary_add.tur","res/translated.cel")

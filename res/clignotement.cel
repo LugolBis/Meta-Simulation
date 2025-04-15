@@ -1,0 +1,31 @@
+Colors:
+    CDead <- (255,255,255),
+    CRed <- (255, 0, 0),
+    COrange <- (255,151,0),
+    CGreen <- (0,255,0)
+
+
+States:
+    Dead (CDead),
+    Red (CRed),
+    Orange (COrange),
+    Green (CGreen)
+    
+Transitions:
+    (Blank,Blank,Green) -> Orange,
+    (Green,Blank,Blank) -> Orange,
+    (Blank,Blank,Orange) -> Red,
+    (Orange,Blank,Blank) -> Red,
+    (Blank,Blank,Red) -> Green,
+    (Red,Blank,Blank) -> Green,
+
+    (Red,Orange,Green) -> Green,
+    (Green,Orange,Red) -> Green,
+
+    (Green,Green,Red) -> Dead,
+    (Red,Green,Green) -> Dead,
+    (Dead,Green,Dead) -> Dead,
+    (Dead,Red,Dead) -> Dead
+    
+Initialisation:
+    Green

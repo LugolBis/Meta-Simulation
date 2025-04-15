@@ -1,6 +1,6 @@
 from io import TextIOWrapper
 import pygame
-import os
+import sys
 
 class Symbol:
 
@@ -271,14 +271,21 @@ class TuringMachine:
     def __repr__(self):
         return f"TuringMachine -- at step : {self._step}\n{self._configuration}"
     
-    def display(self):
+    def display(self,limit=1):
         pygame.init()
         screen = pygame.display.set_mode((800, 600))
         font = pygame.font.SysFont('Arial', 25)
         clock = pygame.time.Clock()
         running = True
         compteur = 0
-        result = ""
+        if self._step - limit == 0:
+            running = False
+            if self.check_final():
+                result = f'ACCEPT - Steps : {self.step}'
+            else:
+                result =  f'REJECT - Steps : {self.step}'
+        else:
+            result = ""
 
         while running or result!="":
 
@@ -318,7 +325,7 @@ class TuringMachine:
 
             clock.tick(60)
             compteur = (compteur + 1)%25
-            if compteur == 0:
+            if compteur == 0 and running:
                 if self.configuration.update() == False:
                     running = False
                     if self.check_final():
@@ -334,10 +341,11 @@ class TuringMachine:
 def question_11(tm: TuringMachine, configuration: Configuration, limit: int):
     tm.set_configuration(configuration)
     tm.run_with_limit(limit)
-    tm.display()
+    tm.display(tm.step)
 
 def question_12(tm: TuringMachine, word: str):
-    tm.configuration.set_tape(Tape.from_liste([char for char in word]))
+    new_tape = Tape.from_liste([char for char in word])
+    tm.configuration.set_tape(new_tape)
     tm.run()
     tm.display()
 
@@ -348,5 +356,16 @@ def parser_tm_script(source: TextIOWrapper):
     return line
 
 if __name__ == '__main__':
-    TM:TuringMachine = TuringMachine.from_script("res/to_translate.tur")
-    TM.display()
+    args = sys.argv[1:]
+    TM: TuringMachine = TuringMachine.from_script("res/binary_add.tur")
+
+    if len(args) == 2 :
+        match args[0]:
+            case "-q11":
+                question_11(TM, TM.configuration,int(args[1])) 
+            case "-q12":
+                question_12(TM, args[1])
+            case _ :
+                print(f"unsupported args : {args}")
+    else:
+        TM.display()
