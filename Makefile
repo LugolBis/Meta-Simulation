@@ -12,7 +12,7 @@ $(VENV)/pygame_installed: $(VENV)
 config:
 	@python3 -m venv $(VENV)
 
-mt:
+tm:
 	@$(PYTHON) $(PWD)/src/turing_machine.py
 	@$(PYTHON) $(PWD)/src/turing_machine.py -q11 3
 	@$(PYTHON) $(PWD)/src/turing_machine.py -q12 11110111
@@ -39,4 +39,4 @@ rapport.pdf: $(TEX_DIR)/rapport.tex
 	@mv $(TEX_DIR)/rapport.pdf .
 	@echo "Compilation terminée !"
 
-demo: config mt ac translate
+demo: config tm ac translate

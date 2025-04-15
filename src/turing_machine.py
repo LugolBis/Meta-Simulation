@@ -3,6 +3,7 @@ import pygame
 import sys
 
 class Symbol:
+    """This class represent the Symbols of the alphabet used by the TM."""
 
     def __init__(self, symbol:str="_"):
         assert isinstance(symbol,str), "ERROR : A Symbol take in input of it constructor a str."
@@ -21,6 +22,10 @@ class Symbol:
         return f"{self._sym}"
 
 class MoveTo:
+    """
+    This class represent one of the following movement :\n
+    '-', 'stay', '<', 'left', '>', 'right'
+    """
 
     def __init__(self, movement:str=""):
         assert isinstance(movement,str), "ERROR : A MoveTo take in input of it constructor a str."
@@ -39,6 +44,7 @@ class MoveTo:
         return f"{self._move}"
     
 class Transition:
+    """This class represent a transition of a TM."""
 
     def __init__(self,read:Symbol,write:Symbol,movement:MoveTo,futur_state:'State'):
         assert isinstance(read,Symbol), f"ERROR : A Transition take in input of it constructor a Symbol object for it's field : read.\nYour input : {read}"
@@ -79,20 +85,22 @@ class Transition:
         return f"\nTransition :\nread : {self._read} ; write : {self._write} ;\nmovement : {str(self._movement)} ; futur_state : {id(self._futur_state)}"
     
 class State:
+    """This class represent a State of a TM."""
 
     def __init__(self, transitions:list[Transition], final:bool):
         self._transitions = transitions
         self._final = final
 
     def set_transitions(self, new_transitions:list[Transition]):
-        #assert isinstance(new_transitions,list[Transition]), "ERROR : The transitions property of a 'State' need to be a 'list[Transition]' object."
         self._transitions = new_transitions
 
     def append_transition(self, new_transition:Transition):
+        """Add a new Transition object to the State."""
         assert isinstance(new_transition,Transition), "ERROR : The transitions property of a 'State' need to be a 'Transition' object."
         self._transitions.append(new_transition)
 
     def set_final(self, new_final:bool):
+        """Set if the State is a final state or not."""
         assert isinstance(new_final, bool), "ERROR : The final property of a 'State' need to be a 'bool'."
         self._final = new_final
 
@@ -105,6 +113,7 @@ class State:
     final = property(lambda x: x._final,set_final)  
 
 class Tape:
+    """This class represent the tape of a TM."""
 
     def __init__(self, left:'Tape', right:'Tape'):
         self._symbol = Symbol()
@@ -124,6 +133,7 @@ class Tape:
         self._right = new_right
 
     def from_liste(liste:list['str']) -> 'Tape':
+        """Create a new Tape object from a list of str."""
         tape = Tape(None,None)
         if len(liste)>0:
             symbol = Symbol(liste.pop(0))
@@ -138,6 +148,7 @@ class Tape:
             return tape
         
     def move_left(self) -> 'Tape':
+        """Return the Tape object on the left of the current Tape object."""
         if isinstance(self._left, Tape):
             return self._left
         else:
@@ -146,6 +157,7 @@ class Tape:
             return new_tape
         
     def move_right(self) -> 'Tape':
+        """Return the Tape object on the right of the current Tape object."""
         if isinstance(self._right, Tape):
             return self._right
         else:
@@ -170,6 +182,7 @@ class Tape:
     right = property(lambda x: x._right,set_right)
 
 class Configuration:
+    """This class represent the configuration of a TM, that include the tape and the current state."""
 
     def __init__(self, tape:Tape, current_state:State):
         self._tape = tape
@@ -184,6 +197,10 @@ class Configuration:
         self._current_state = new_current_state
 
     def update(self) -> bool:
+        """Search a transition to be applied :\n
+        if there is it is applied and it return 'True'\n
+        else it return 'False'.
+        """
         current_symbol:Symbol = self._tape.symbol
         for transition in self._current_state.transitions:
             if transition.read == current_symbol:
@@ -204,12 +221,14 @@ class Configuration:
     current_state = property(lambda x: x._current_state,set_current_state)
 
 class TuringMachine:
+    """This class represent Turing Machine (TM)."""
 
     def __init__(self, configuration:Configuration):
         self._configuration = configuration
         self._step = 0
 
     def from_script(path:str) -> 'TuringMachine':
+        """Parse a Turing Machine script that need to be formated like described in the README.md"""
         BUFFER = {} # key : state name, value : (State, []) the list contains the names of the futurs_states
         with open (path,"r") as fs:
             init_state = parser_tm_script(fs)
@@ -252,9 +271,11 @@ class TuringMachine:
         self._step = new_step
 
     def check_final(self) -> bool:
+        """Return if the current state if a final state."""
         return self._configuration.current_state.final
 
     def run(self) -> bool:
+        """Run the Turing Machine while there is transitions."""
         active = True
         while active:
             active = self._configuration.update()
@@ -262,6 +283,7 @@ class TuringMachine:
         return self.check_final()
 
     def run_with_limit(self,limit:int) -> bool:
+        """Run the Turing Machine while the limit of step isn't reached."""
         active = True
         while active and self._step<limit:
             active = self._configuration.update()
@@ -272,6 +294,9 @@ class TuringMachine:
         return f"TuringMachine -- at step : {self._step}\n{self._configuration}"
     
     def display(self,limit=1):
+        """This function just display the Turing Machine if teh step limit is already reached.\n
+        In the other cases, it run and display the turing machine and show each step of the running.
+        """
         pygame.init()
         screen = pygame.display.set_mode((800, 600))
         font = pygame.font.SysFont('Arial', 25)
@@ -339,17 +364,20 @@ class TuringMachine:
     step = property(lambda x: x._step,set_step)
 
 def question_11(tm: TuringMachine, configuration: Configuration, limit: int):
+    """This function use the methods and classes to perform the question 11."""
     tm.set_configuration(configuration)
     tm.run_with_limit(limit)
     tm.display(tm.step)
 
 def question_12(tm: TuringMachine, word: str):
+    """This function use the methods and classes to perform the question 12."""
     new_tape = Tape.from_liste([char for char in word])
     tm.configuration.set_tape(new_tape)
     tm.run()
     tm.display()
 
 def parser_tm_script(source: TextIOWrapper):
+    """This function simplify the script parsing and permite to introduce comments in TM scripts."""
     line = source.readline().strip()
     while line=="" or line.startswith("//"):
         line = source.readline().strip()

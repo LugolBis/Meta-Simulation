@@ -311,12 +311,10 @@ def load_cellular_from_file(path: str):
         automaton._rules.set(transition, parsed['Transitions'][transition])        
 
     return (automaton, config)
- 
-   
-
-import pygame
 
 if __name__ == '__main__':
+    import pygame
+    
     args = sys.argv[1:]
     if len(args)>0:
         (automaton, config) = load_cellular_from_file(args[0])
