@@ -2,8 +2,9 @@ PYTHON = venv/bin/python3
 TEX_DIR = tex
 VENV = venv
 
-all: rapport.pdf $(VENV)/pygame_installed src/cellular_automata.py
-	@$(PYTHON) src/main.py res/elargissement.cel
+"": all
+
+all: rapport.pdf $(VENV)/pygame_installed src/cellular_automata.py demo
 
 $(VENV)/pygame_installed: $(VENV)
 	@$(PYTHON) -m pip install pygame
@@ -38,4 +39,4 @@ rapport.pdf: $(TEX_DIR)/rapport.tex
 	@mv $(TEX_DIR)/rapport.pdf .
 	@echo "Compilation terminée !"
 
-demo: config tm ac translate
+demo: tm ac translate

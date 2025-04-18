@@ -4,3 +4,4 @@
 /tex/*.log
 *.pdf
 /src/__pycache__
+/res/translated.cel

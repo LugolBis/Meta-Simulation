@@ -4,8 +4,8 @@ from turing_machine import parser_tm_script
 from utils import letter_from_color, color_from_letter
 
 def translate_turing_machine(script_path:str, save_path:str):
-    BUFFER = {} # key : StateName_READ, value : a tuple that contains the FUTUR_STATE, WRITE, MOVEMENT values
-    TM_ALPHABET = set() # Store the symbols used by the Cellular Automaton
+    buffer = {} # key : StateName_READ, value : a tuple that contains the FUTUR_STATE, WRITE, MOVEMENT values
+    tm_alphabet = set() # Store the symbols used by the Cellular Automaton
     with open (script_path,"r") as fs:
         init_state = parser_tm_script(fs)
         finals = parser_tm_script(fs).split(",") # Unused finals state
@@ -16,94 +16,94 @@ def translate_turing_machine(script_path:str, save_path:str):
             if line != "" and not line.startswith("//"):
                 try:
                     current_state, read, futur_state, write, move = line.strip().split(",")
-                    TM_ALPHABET.add(read) ; TM_ALPHABET.add(write)
-                    BUFFER[f"{current_state}{read}"] = (futur_state,write,move)
+                    tm_alphabet.add(read) ; tm_alphabet.add(write)
+                    buffer[f"{current_state}{read}"] = (futur_state,write,move)
 
                     reject = f"{futur_state}{read}"
-                    if reject not in BUFFER.keys():
-                        BUFFER[reject] = (reject,"","-")
+                    if reject not in buffer.keys():
+                        buffer[reject] = (reject,"","-")
                 except Exception as error:
                     print(f"Error line :\n'{line}'\n")
                     raise error
 
-    # Store the alphabet of the CellularAutomaton -> {TM_Transitions U {*}} x TM_Alphabet
-    CA_ALPHABET = set()
+    # Store the alphabet of the CellularAutomaton -> {TM_transitions U {*}} x tm_alphabet
+    ca_alphabet = set()
 
     # Generate the CA alphabet based on the finals states and the TM alphabet
     for state in finals:
-        for letter in TM_ALPHABET:
-            CA_ALPHABET.add(f"{state}{letter}")
-            CA_ALPHABET.add(f"{init_state}{letter}")
+        for letter in tm_alphabet:
+            ca_alphabet.add(f"{state}{letter}")
+            ca_alphabet.add(f"{init_state}{letter}")
 
-    # Adding already formatted states stored in the BUFFER
-    for state in BUFFER.keys():
-        CA_ALPHABET.add(state)
+    # Adding already formatted states stored in the buffer
+    for state in buffer.keys():
+        ca_alphabet.add(state)
 
     # Adding empty state for each letter in the TM alphabet
-    for letter in TM_ALPHABET:
-        CA_ALPHABET.add(f"*{letter}")
+    for letter in tm_alphabet:
+        ca_alphabet.add(f"*{letter}")
 
-    # TRANSITIONS store the transitions of the CellularAutomaton in this format : key : (CELL_Left, cell_middle, CELL_Right), value: New_CELL
-    TRANSITIONS = dict()
-    cell_without_state = {letter for letter in CA_ALPHABET if letter[0]=="*"} # Store all the cell alphabet that hasn't got transitions
-    for state, transition in BUFFER.items():
+    # transitions store the transitions of the CellularAutomaton in this format : key : (CELL_Left, cell_middle, CELL_Right), value: New_CELL
+    transitions = dict()
+    cell_without_state = {letter for letter in ca_alphabet if letter[0]=="*"} # Store all the cell alphabet that hasn't got transitions
+    for state, transition in buffer.items():
         futur_state, write, move = transition
         match move:
             case "-":
                 for cell_left in cell_without_state:
                     for cell_right in cell_without_state:
-                        TRANSITIONS[(cell_left,state,cell_right)] = f"{futur_state}{write}"
+                        transitions[(cell_left,state,cell_right)] = f"{futur_state}{write}"
             case ">":
                 for cell_left in cell_without_state:
                     for cell_right in cell_without_state:
-                        TRANSITIONS[(cell_left,state,cell_right)] = f"*{write}"
+                        transitions[(cell_left,state,cell_right)] = f"*{write}"
                 for current_cell in cell_without_state:
                     for cell_right in cell_without_state:
-                        TRANSITIONS[(state,current_cell,cell_right)] = f"{futur_state}{current_cell[1:]}"
+                        transitions[(state,current_cell,cell_right)] = f"{futur_state}{current_cell[1:]}"
             case "<":
                 for cell_left in cell_without_state:
                     for cell_right in cell_without_state:
-                        TRANSITIONS[(cell_left,state,cell_right)] = f"*{write}"
+                        transitions[(cell_left,state,cell_right)] = f"*{write}"
                 for current_cell in cell_without_state:
                     for cell_left in cell_without_state:
-                        TRANSITIONS[(cell_left,current_cell,state)] = f"{futur_state}{current_cell[1:]}"
+                        transitions[(cell_left,current_cell,state)] = f"{futur_state}{current_cell[1:]}"
             case default:
                 print(f"Inconsistent symbol for movement : '{move}'")
 
-    # Store the Colors of each state
-    COLORS = set() 
+    # Store the colors of each state
+    colors = set() 
     generated = []
-    for index, value in enumerate(CA_ALPHABET):
+    for index, value in enumerate(ca_alphabet):
 
         r, g, b = color_from_letter(value[-1])
 
-        COLORS.add((value, r, g, b))
+        colors.add((value, r, g, b))
     
     with open(save_path,"w")  as fd:
-        CONTENT = ""
+        content = ""
         
-        CONTENT += "Colors:\n"
-        for color in COLORS:
-            CONTENT += f"   Color{color[0]} <- {color[1],color[2],color[3]},\n"
-        CONTENT = CONTENT[:-2] + '\n' # Deleting last comma
+        content += "Colors:\n"
+        for color in colors:
+            content += f"   Color{color[0]} <- {color[1],color[2],color[3]},\n"
+        content = content[:-2] + '\n' # Deleting last comma
 
-        CONTENT += "\nStates:\n"
-        for state in CA_ALPHABET:
-            CONTENT += f"   {state}(Color{state}),\n"
-        CONTENT = CONTENT[:-2] + '\n' # Deleting last comma
+        content += "\nStates:\n"
+        for state in ca_alphabet:
+            content += f"   {state}(Color{state}),\n"
+        content = content[:-2] + '\n' # Deleting last comma
 
-        CONTENT += "\nTransitions:\n"
-        for cells, new_cell in TRANSITIONS.items():
+        content += "\nTransitions:\n"
+        for cells, new_cell in transitions.items():
             cell_left, cell_middle, cell_right = cells
-            CONTENT += f"   ({cell_left}, {cell_middle}, {cell_right}) -> {new_cell},\n"
-        CONTENT = CONTENT[:-2] + '\n' # Deleting last comma
+            content += f"   ({cell_left}, {cell_middle}, {cell_right}) -> {new_cell},\n"
+        content = content[:-2] + '\n' # Deleting last comma
 
-        CONTENT += f"\nInitialisation:\n   *_, *_, {init_state}{input_word[0]},"
+        content += f"\nInitialisation:\n   *_, *_, {init_state}{input_word[0]},"
         for word in input_word[1:]:
-            CONTENT += f" *{word},"
-        CONTENT += f' *_, *_\n'
+            content += f" *{word},"
+        content += f' *_, *_\n'
 
-        fd.write(CONTENT)
+        fd.write(content)
     print("Successfully translate The Turing Machine into a Cellular Automaton.")
     
 
