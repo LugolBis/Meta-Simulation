@@ -1,5 +1,7 @@
 \documentclass{article}
 
+\usepackage{graphicx}
+
 \title{Rapport IN620}
 \date{\today}
 \author{GHARIB ALI BARURA Sama, DESMARES Loïc}
@@ -11,13 +13,23 @@
 
   \section{Question 1}
     Pour représenter un automate cellulaire, il suffit d'en enregistrer la fonction de
-  transition. Pour cela, on utilisera un tableau unidimensionel de taille 8 de manière
-  à pouvoir obtenir le nouvel état d'une cellule \(c_i\) à partir du
-  \((c_{i-1} c_i c_{i+1})_2\)ième élément de ce tableau.
+  transition. Pour cela, on utilise un arbre de profondeur 3. À chaque étage de l'arbre, on met autant
+  de branches qu'il n'y a d'états. Cela permet de limiter le poids en mémoire des automates
+  cellulaires qui n'ont pas beaucoup de transitions tout en n'augmentant que par une constante
+  le coût de recherche d'une transition en particulier.
+
+  Exemple pour les transitions:
+  \begin{itemize}
+  \item (0, 0, 0) donne 1
+  \item (0, 1, 0) donne B
+  \item (1, 1, 1) donne B
+  \end{itemize}
+  On a l'arbre :
+  \includegraphics{fig1}
 
   \section{Question 2}
       Une configuration d'un automate cellulaire à l'instant t n'a besoin que des données
-  de sa bande. On représentera un état de cellule par une énumération `Vivant, Mort`.
+  de sa bande. On représentera un état de cellule par son nom.
   Une cellule est un 2-uplet d'état représentant l'état courant et l'état au temps t+1.
   Pour représenter la bande (grille) en elle-même, le mieux est d'utiliser une liste doublement
   chaînée. Cela permet de garantir les opérations d'ajout à gauche et à droite en un temps
@@ -29,7 +41,7 @@
   d’un automate cellulaire, $s \in S$ et un mot w appartenant à S * , décider si A sur l’entrée w va avoir une configuration
   contenant s lors de son calcul.
 
-  Au travers de la question 13 nous avons démontrer (et implémenter) une solution permettant de traduire un 
+  Au travers de la question 13 nous avons démontré (et implémenté) une solution permettant de traduire un 
   automate cellulaire en une machine de turing.
   Nous admettons donc que nous pouvons aisément passer d'un automate cellulaire à une machine de turing.
 

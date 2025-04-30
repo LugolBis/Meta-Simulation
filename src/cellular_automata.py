@@ -297,7 +297,6 @@ def load_cellular_from_file(path: str):
     parsed = {}
     with open(path) as stream:
         parsed = cellular_parser(stream.read())
-    print(parsed)
 
     check_missing_field_error(parsed, ['Colors', 'States', 'Transitions', 'Initialisation'], path)
 
@@ -318,10 +317,13 @@ if __name__ == '__main__':
     import pygame
     
     args = sys.argv[1:]
+    loaded = ""
     if len(args)>0:
-        (automaton, config) = load_cellular_from_file(args[0])
+        loaded = args[0]
     else:
-        (automaton, config) = load_cellular_from_file('res/elargissement.cel')    
+        loaded = 'res/elargissement.cel'
+
+    (automaton, config) = load_cellular_from_file(loaded)
 
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
@@ -344,6 +346,8 @@ if __name__ == '__main__':
         i = 0
         while current != None:
             
+            screen.blit(font.render(f"Cellular automaton : {loaded}", True, (0, 0, 0)), dest=(10, 10))
+
             # Drawing a cell
             try:
                 # Tries to draw as letter
