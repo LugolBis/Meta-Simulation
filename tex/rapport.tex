@@ -37,31 +37,37 @@
   le problème de la complexité O(n) pour accéder à un élément précis ne se pose pas.
 
   \section{Question 14}
-      Soit le problème HALTING-CELLULAR-AUTOMATON : étant donné < A > le code
-  d’un automate cellulaire, $s \in S$ et un mot w appartenant à S * , décider si A sur l’entrée w va avoir une configuration
-  contenant s lors de son calcul.
+      Soit le langage HALTING-CELLULAR-AUTOMATON tel que :
 
-  Au travers de la question 13 nous avons démontré (et implémenté) une solution permettant de traduire un 
-  automate cellulaire en une machine de turing.
-  Nous admettons donc que nous pouvons aisément passer d'un automate cellulaire à une machine de turing.
+      $L_{hca} = \{(<A>, w, s) \vert P\}$ où P est la propriété "A aura l'état s sur sa bande en partant de w".
+    
+      On suppose que HALTING-CELULAR-AUTOMATON est décidable. Il existe donc une machine de Turing M qui accepte tous les mots du langage
+    et rejette tous ceux qui n'y sont pas.
 
-  Démonstration par l'absurde
-  Supposons que Lhca le language reconnaissant HALTING-CELLULAR-AUTOMATON est décidable tel que il existe 
-  une machine de turing HCA qui décide Lhca.
-  On définit H une machine de turing qui décide HALT :
-  - Entrée : (<M>, w)
-  - On construit M' à partir de M :
-    - On efface sa bande
-    - On écrit w
-    - Si M s'arrête sur w alors ACCEPT
+    Soit l'état spécial $E_s$.
 
-  Si HCA accepte (<M'>,w,w) alors ACCEPT
-    Sinon REJECT
+    On construit un automate cellulaire M' comme suit: 
+    \begin{itemize}
+    \item Prend en entrée : $<M>$ le code d'un automate cellulaire qui ne peut pas écrire $E_s$, w une suite d'états qui ne contient pas $E_s$.
+    \item On simule M sur l'entrée w.
+    \item Lorsque M s'arrête, on écrit $E_s$ sur la bande.
+    \end{itemize}
 
-  . Si (<M>, w) appartient à HALT alors HCA s'arrête sur w. On a HCA qui calcule si une configuration donnée 
-  appartient aux configurations obtenues lors du calcul sur le mot w.
-  . Si (<M>,w) n'appartient pas à HALT, cela signifie que par contsruction de M' on a (<M>,w,w) qui n'appartient pas à HCA, car <M> ne s'arrête pas sur w.
+    Or, grâce à une telle machine, on peut résoudre le problème de l'arrêt comme suit :
 
-  Donc HALT décidable : contradiction, HALTING-CELLULAR-AUTOMATON est indécidable.
-  
+    On construit une machine de Turing H comme suit:
+    \begin{itemize}
+    \item Prend en entrée: $<M>$ le code d'une machine de Turing et w un mot d'entrée.
+    \item Traduit $<M>$ en code d'automate cellulaire $<A>$ et w en suite d'états s.
+    \item Définit l'état $E_s$ tel que $E_s$ ne figure pas dans les transitions de $<A>$.
+    \item ACCEPT si HALTING-CELLULAR-AUTOMATON $( <M'> (<A>), s, E_s)$ accepte.
+    \item REJECT si HALTING-CELLULAR-AUTOMATON $( <M'> (<A>), s, E_s)$ rejette.
+    \end{itemize}
+
+    Si M s'arrête sur m, alors M' écrit l'état $E_s$ sur sa bande, cet état ne peut être écrit que lorsque M s'arrête donc HALTING-CELLULAR-AUTOMATON accepte, donc H accepte.
+
+    Si M ne s'arrête pas sur m, alors M' n'écrira jamais l'état $E_s$ sur sa bande, donc HALTING-CELLULAR-AUTOMATON rejette donc H rejette.
+
+    On a résolu le problème de l'arrêt qui lui est résolument indécidable, cela signifie que le langage HALTING-CELLULAR-AUTOMATON est indécidable.
+
 \end{document}
