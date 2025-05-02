@@ -223,20 +223,21 @@ class Configuration:
 class TuringMachine:
     """This class represent Turing Machine (TM)."""
 
-    def __init__(self, configuration:Configuration):
+    def __init__(self, configuration:Configuration, name="Unknow"):
         self._configuration = configuration
         self._step = 0
+        self._name = name
 
     def from_script(path:str) -> 'TuringMachine':
         """Parse a Turing Machine script that need to be formated like described in the README.md"""
-        BUFFER = {} # key : state name, value : (State, []) the list contains the names of the futurs_states
+        buffer = {} # key : state name, value : (State, []) the list contains the names of the futurs_states
         with open (path,"r") as fs:
             init_state = parser_tm_script(fs)
 
             finals = parser_tm_script(fs).split(",")
 
             for final_state in finals:
-                BUFFER[final_state] = (State([],True),[])
+                buffer[final_state] = (State([],True),[])
             
             tape = Tape.from_liste(parser_tm_script(fs).split(","))
 
@@ -245,22 +246,22 @@ class TuringMachine:
                 if line != "" and not line.startswith("//"):
                     try:
                         current_state, read, futur_state, write, move = line.strip().split(",")
-                        if current_state in BUFFER.keys():
-                            BUFFER[current_state][0].append_transition(Transition.from_args(read,write,move))
-                            BUFFER[current_state][1].append(futur_state)
+                        if current_state in buffer.keys():
+                            buffer[current_state][0].append_transition(Transition.from_args(read,write,move))
+                            buffer[current_state][1].append(futur_state)
                         else:
-                            BUFFER[current_state] = (State([Transition.from_args(read,write,move)], False), [futur_state])
+                            buffer[current_state] = (State([Transition.from_args(read,write,move)], False), [futur_state])
                     except Exception as error:
                         raise error
             
-        for key, value in BUFFER.items():
+        for key, value in buffer.items():
             new_transitions = value[0].transitions
             for index, futur_state in enumerate(value[1]):
-                if futur_state in BUFFER.keys():
-                    new_transitions[index].set_futur_state(BUFFER[futur_state][0])
-            BUFFER[key][0].set_transitions(new_transitions)
+                if futur_state in buffer.keys():
+                    new_transitions[index].set_futur_state(buffer[futur_state][0])
+            buffer[key][0].set_transitions(new_transitions)
             
-        return TuringMachine(Configuration(tape,BUFFER[init_state][0]))
+        return TuringMachine(Configuration(tape,buffer[init_state][0]))
 
     def set_configuration(self, new_configuration:Configuration):
         assert isinstance(new_configuration,Configuration), "ERROR : The 'TuringMachine' property 'configuration' need to be a 'Configuration' object."
@@ -269,6 +270,10 @@ class TuringMachine:
     def set_step(self, new_step:int):
         assert isinstance(new_step,int), "ERROR : The 'TuringMachine' property 'step' need to be an 'int' object."
         self._step = new_step
+
+    def set_name(self, new_name:str):
+        assert isinstance(new_name,str), "ERROR : The 'TuringMachine' property 'name' need to be an 'str' object."
+        self._name = new_name
 
     def check_final(self) -> bool:
         """Return if the current state if a final state."""
@@ -314,12 +319,16 @@ class TuringMachine:
 
         while running or result!="":
 
+            
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                     result=""
 
             screen.fill("white")
+
+            screen.blit(font.render(f"Turing Machine : {self.name}", True, (0, 0, 0)), dest=(10,10))
 
             pygame.draw.rect(screen, (217,167,161), (385, 295, 25, 25))
             screen.blit(font.render(f"{self.configuration.tape.symbol}", True, (0,0,0)), dest=(390, 295, 20, 20))
@@ -360,8 +369,9 @@ class TuringMachine:
                 else:
                     self._step += 1
 
-    configuration = property(lambda x: x._configuration,set_configuration)
-    step = property(lambda x: x._step,set_step)
+    configuration = property(lambda x: x._configuration, set_configuration)
+    step = property(lambda x: x._step, set_step)
+    name = property(lambda x: x._name, set_name)
 
 def question_11(tm: TuringMachine, configuration: Configuration, limit: int):
     """This function use the methods and classes to perform the question 11."""
@@ -386,6 +396,7 @@ def parser_tm_script(source: TextIOWrapper):
 if __name__ == '__main__':
     args = sys.argv[1:]
     TM: TuringMachine = TuringMachine.from_script("res/binary_add.tur")
+    TM.set_name("Binary ADD")
 
     if len(args) == 2 :
         match args[0]:
