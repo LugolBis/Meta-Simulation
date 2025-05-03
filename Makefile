@@ -20,6 +20,7 @@ tm:
 
 ac:
 	@$(PYTHON) src/cellular_automata.py
+	@$(PYTHON) src/cellular_automata.py res/cycle.cel
 	@$(PYTHON) src/cellular_automata.py res/palindrome.cel
 	@$(PYTHON) src/cellular_automata.py res/pingpong.cel
 

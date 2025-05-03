@@ -1,5 +1,6 @@
 from cellular_parser import cellular_parser
 import sys
+from copy import deepcopy
 
 from utils import letter_from_color
 
@@ -29,11 +30,20 @@ class Cell:
         self._next_state = None
 
     def update(self):
+        '''
+            Sets current state as next state.
+            Returns true if state has changed.
+        '''
+
         if self._next_state == None:
             raise ValueError('Tried to update a Cell with no next state.')
         else:
+            has_changed = self._current_state != self._next_state
+
             self._current_state = self._next_state
             self._next_state = None
+
+            return has_changed
 
     def get_current_state(self):
         return self._current_state
@@ -247,8 +257,18 @@ class CellularAutomaton:
                     config.push_front('Blank', edge[1]._next_state)
                 case Direction.Right:
                     config.push_back('Blank', edge[1]._next_state)
-            
-    def step(self, config: Config):
+    def step(self, config: Config, watch = ("None", "None", "None")):
+        '''
+            Makes a single step in simulation.
+            This methode returns a 2-uplet of booleans,
+            the first is true if the `watch` transition
+            is applied and the second is true if this
+            step has changed the configuration.
+        '''
+
+        is_watched_transition_applied = False
+        changed_config                = False
+
         # Adding theoritical edge cells
 
         config.push_front('Blank')
@@ -271,12 +291,15 @@ class CellularAutomaton:
                 # We are NOT at the rightmost cell
                 next = next_node.get_value().get_current_state()
 
+            if (last, current.get_value().get_current_state(), next) == watch:
+                is_watched_transition_applied = True
+
             # Applying
-            
+
             # Inplace modification can only occur in `current`
             self._apply_rules(Cell(last), current.get_value(), Cell(next))
-            # Onto the next node !
 
+            # Onto the next node !
             last_node = current
             current = current.get_towards(Direction.Right)
 
@@ -284,7 +307,8 @@ class CellularAutomaton:
         # Updating the cells
         current = config.leftmost
         while current != None:
-            current.get_value().update()
+            if current.get_value().update():
+                changed_config = True
             current = current.get_towards(Direction.Right)
 
         # Deleting edge cells if blank
@@ -292,6 +316,8 @@ class CellularAutomaton:
             config.pop_front()
         if config.rightmost.get_value().get_current_state() == 'Blank':
             config.pop_back()
+
+        return (is_watched_transition_applied, changed_config)
         
 def load_cellular_from_file(path: str):
     parsed = {}
@@ -312,6 +338,43 @@ def load_cellular_from_file(path: str):
         automaton._rules.set(transition, parsed['Transitions'][transition])        
 
     return (automaton, config)
+
+
+class StopRule:
+    def __init__(self, max_step = -1, last_transition = ("None", "None", "None"), stop_when_still = False):
+        self.max_step = max_step
+        self.last_transition = last_transition
+        self.stop_when_still = stop_when_still
+
+def simulate_automaton(automaton: CellularAutomaton, config: Config, stop_rule: StopRule):
+    '''
+        This function implements the question 5.
+    '''
+
+    steps = 0
+    while True:        
+        # Simulation automaton
+        (last_transition_applied, changed) = automaton.step(config, watch = stop_rule.last_transition)
+        steps += 1
+        
+        print(f'Step {steps} :\n\t{config}\n')
+
+        # Stopping simulation if either of stop_rule's limitations are reached
+        if last_transition_applied:
+            print("Stopped because automaton applied end transition.")
+            break;
+        if stop_rule.stop_when_still and not changed:
+            print("Stopped because config did not change.")
+            break
+        if stop_rule.max_step == steps:
+            print("Stopped after simulating max_step.")
+            break
+
+'''
+# Testing question 5
+(automaton, config) = load_cellular_from_file('res/palindrome.cel')
+simulate_automaton(automaton, config, StopRule(stop_when_still = True))
+'''
 
 if __name__ == '__main__':
     import pygame
@@ -363,7 +426,7 @@ if __name__ == '__main__':
                     dest = (405 + (i - len(config)/2) * 20, 300, 0, 0)
                 )
             except:
-                # Not a letter matchin magic value state
+                # Not a letter matching magic value state
                 pygame.draw.rect(
                     screen,
                     automaton._colors[automaton._subtypes[current.get_value().get_current_state()]],
@@ -376,6 +439,8 @@ if __name__ == '__main__':
         pygame.display.flip()
 
         clock.tick(60)
+        
+        # Making the automaton step every 25 frames
         compteur = (compteur + 1)%25
         if compteur == 0:
             automaton.step(config)
